@@ -37,9 +37,11 @@ async def main():
 
         await page.goto(TARGET_URL, timeout=90000)
 
-        await page.click("table tfoot tr.rgPager div.rgAdvPart button.rcbActionButton")
+        await page.click("div#areastyle > div.col-md-4:first-of-type ul.text-start i.fa-file-magnifying-glass")
         await page.click("ul.rcbList li:last-of-type")
-        await asyncio.sleep(10)
+        
+        await page.wait_for_selector("input#rodDocTypeTxt")
+        await 
 
         await browser.close()
 
