@@ -72,8 +72,8 @@ async def main():
         today = datetime.today()
         three_months_ago = today - relativedelta(months=3)
 
-        await page.fill('#rodDateFromTxt', str(three_months_ago.strftime(f'%m/%d/%Y')))
-        await page.fill('#rodToDateTxt', str(today.strftime(f'%m/%d/%Y')))
+        await page.fill('#drwrapper-rod-type #rodDateFromTxt', str(three_months_ago.strftime(f'%m/%d/%Y')))
+        await page.fill('#drwrapper-rod-type #rodToDateTxt', str(today.strftime(f'%m/%d/%Y')))
         ######################
 
         await page.click("#rod-submit-type-search")
