@@ -61,20 +61,30 @@ async def main():
         await page.goto(TARGET_URL, timeout=90000)
 
         await page.click("div#areastyle > div.col-md-4:first-of-type ul.text-start i.fa-file-magnifying-glass")
-        # await page.click("ul.rcbList li:last-of-type")
-        
         await page.wait_for_selector("input#rodDocTypeTxt")
         await page.fill("input#rodDocTypeTxt", "ml")
         await page.click("text='ML - MECHANIC LIEN'")
         await page.click("#date_range_rod_type")
 
         ### Date Range Set ###
-        today = datetime.today()
-        three_months_ago = today - relativedelta(months=3)
+        today = datetime.today().date
+        # three_months_ago = today - relativedelta(months=3)
 
-        await page.fill('#drwrapper-rod-type #rodDateFromTxt', str(three_months_ago.strftime(f'%m/%d/%Y')))
-        await page.fill('#drwrapper-rod-type #rodToDateTxt', str(today.strftime(f'%m/%d/%Y')))
-        ######################
+        await page.click('#drwrapper-rod-type #rodDateFromTxt')
+        await asyncio.sleep(1)
+        
+        for i in range(3):
+            await page.click('div.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month svg')
+        dayContainer_from = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
+        from_date = dayContainer_from.locator(f"text={today}")
+        await from_date.click()
+
+        await page.click('#drwrapper-rod-type #rodToDateTxt')
+        await asyncio.sleep(1)
+
+        dayContainer_to = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
+        to_date = dayContainer_to.locator(f"text={today}")
+        await to_date.click()
 
         await page.click("#rod-submit-type-search")
         await asyncio.sleep(30)
