@@ -25,7 +25,8 @@ def clear_csv_file():
 
 async def get_table_headers(page):
     headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
-    return [await header.text_content() or "N/A" for header in headers]
+    header_titles = [await header.text_content() or "N/A" for header in headers]
+    header_titles[0] = "PDF"
 
 async def get_pdf_hyperlink(instrument_number: str) -> str:
     url = f"https://www.okcc.online/ajax/auth-new.php"
@@ -56,10 +57,11 @@ async def scrape_table(page):
         instrument_number = cell_values[1]
         print (f"instrument number: {instrument_number}")
 
-        pdf_button = cells[0].locator('i.fa-file-pdf')
+        pdf_button = cells[0].query_selector('i.fa-file-pdf')
         await pdf_button.scroll_into_view_if_needed()
         hyperlink = await get_pdf_hyperlink(instrument_number=instrument_number)
         print (f"hyperlink: {hyperlink}")
+        cell_values[0] = hyperlink
 
         if cell_values:
             table_data.append(cell_values)
