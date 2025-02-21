@@ -88,7 +88,7 @@ async def main():
         await to_date.click()
 
         await page.click("#rod-submit-type-search")
-        await asyncio.sleep(30)
+        await asyncio.sleep(100)
 
         num_pages_element = await page.query_selector('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
         num_pages = int(num_pages_element.text_content())
