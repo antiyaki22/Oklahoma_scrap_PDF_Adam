@@ -41,9 +41,9 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
     response = requests.post(url, json=data, headers=headers)
 
     print("Status Code:", response.status_code)
-    print("Response Body:", response)  
+    print("Response Body:", response.text)  
 
-    hyperlink = f"https://www.okcc.online/document.php?s={response}&d=DOC436S4787&t=rod"
+    hyperlink = f"https://www.okcc.online/document.php?s={response.text}&d=DOC436S4787&t=rod"
     return hyperlink
 
 async def scrape_table(page):
