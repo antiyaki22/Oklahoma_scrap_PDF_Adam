@@ -67,7 +67,7 @@ async def main():
         await page.click("#date_range_rod_type")
 
         ### Date Range Set ###
-        today = str(datetime.today().date)
+        today = datetime.today().day
         print (f"today: {today}")
         # three_months_ago = today - relativedelta(months=3)
 
