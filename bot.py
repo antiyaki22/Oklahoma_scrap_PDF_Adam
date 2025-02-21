@@ -57,7 +57,7 @@ async def scrape_table(page):
         instrument_number = cell_values[1]
         print (f"instrument number: {instrument_number}")
 
-        pdf_button = cells[0].query_selector('i.fa-file-pdf')
+        pdf_button = await cells[0].query_selector('i.fa-file-pdf')
         await pdf_button.scroll_into_view_if_needed()
         hyperlink = await get_pdf_hyperlink(instrument_number=instrument_number)
         print (f"hyperlink: {hyperlink}")
