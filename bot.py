@@ -88,14 +88,14 @@ async def main():
         await to_date.click()
 
         await page.click("#rod-submit-type-search")
-        await asyncio.sleep(100)
+        await asyncio.sleep(60)
 
-        num_pages_element = await page.query_selector('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
-        num_pages = num_pages_element.text_content()
+        num_pages_element = page.locator('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
+        num_pages = await num_pages_element.text_content()
 
         headers = await get_table_headers(page)
 
-        for i in range(num_pages):
+        for i in range(int(num_pages)):
 
             ### Main Logic ###
             table_data = await scrape_table(page)
