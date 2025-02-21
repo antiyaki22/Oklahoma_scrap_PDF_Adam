@@ -91,7 +91,7 @@ async def main():
         await asyncio.sleep(100)
 
         num_pages_element = await page.query_selector('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
-        num_pages = int(num_pages_element.text_content())
+        num_pages = num_pages_element.text_content()
 
         headers = await get_table_headers(page)
 
