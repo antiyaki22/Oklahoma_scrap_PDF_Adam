@@ -30,7 +30,9 @@ async def get_table_headers(page):
 
 async def get_pdf_hyperlink(instrument_number: str) -> str:
     url = f"https://www.okcc.online/ajax/auth-new.php"
-    data = instrument_number
+    data = {
+        "s": instrument_number
+    }
     headers = {
         "Content-Type": f"application/x-www-form-urlencoded",
         "Referer": f"https://www.okcc.online/index.php" 
@@ -39,7 +41,7 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
     response = requests.post(url, data=data, headers=headers)
 
     print("Status Code:", response.status_code)
-    print("Response Body:", response.text)  
+    print("Response Body:", response.headers)  
 
     hyperlink = f"https://www.okcc.online/document.php?s={response.text}&d=DOC436S4787&t=rod"
     return hyperlink
