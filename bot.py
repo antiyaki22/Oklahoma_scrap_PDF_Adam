@@ -2,7 +2,7 @@ import asyncio
 import csv
 import os
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
+import requests
 import subprocess
 from playwright.async_api import async_playwright
 
@@ -27,6 +27,24 @@ async def get_table_headers(page):
     headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
     return [await header.text_content() or "N/A" for header in headers]
 
+async def get_pdf_hyperlink(instrument_number: str) -> str:
+    url = f"https://www.okcc.online/ajax/auth-new.php"
+    data = {
+        "s": instrument_number
+    }
+    headers = {
+        "Content-Type": f"application/x-www-form-urlencoded",
+        "Referer": f"https://www.okcc.online/index.php" 
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+
+    print("Status Code:", response.status_code)
+    print("Response Body:", response.json())  
+
+    hyperlink = f"https://www.okcc.online/document.php?s={response}&d=DOC436S4787&t=rod"
+    return hyperlink
+
 async def scrape_table(page):
     table_data = []
     rows = await page.query_selector_all(TABLE_ROW_SELECTOR)
@@ -34,6 +52,14 @@ async def scrape_table(page):
     for row in rows:
         cells = await row.query_selector_all(TABLE_CELL_SELECTOR)
         cell_values = [await cell.text_content() or "N/A" for cell in cells]
+
+        instrument_number = cell_values[1]
+        print (f"instrument number: {instrument_number}")
+
+        pdf_button = cells[0].locator('i.fa-file-pdf')
+        await pdf_button.scroll_into_view_if_needed()
+        hyperlink = await get_pdf_hyperlink(instrument_number=instrument_number)
+        print (f"hyperlink: {hyperlink}")
 
         if cell_values:
             table_data.append(cell_values)
