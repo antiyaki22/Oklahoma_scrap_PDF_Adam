@@ -38,7 +38,7 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "Referer": f"https://www.okcc.online/index.php" 
     }
 
-    response = requests.post(url, json=data, headers=headers)
+    response = requests.post(url, data=data, headers=headers)
 
     print("Status Code:", response.status_code)
     print("Response Body:", response.text)  
