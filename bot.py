@@ -41,7 +41,7 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
     response = requests.post(url, json=data, headers=headers)
 
     print("Status Code:", response.status_code)
-    print("Response Body:", response.json())  
+    print("Response Body:", response)  
 
     hyperlink = f"https://www.okcc.online/document.php?s={response}&d=DOC436S4787&t=rod"
     return hyperlink
@@ -58,7 +58,6 @@ async def scrape_table(page):
         print (f"instrument number: {instrument_number}")
 
         pdf_button = await cells[0].query_selector('i.fa-file-pdf')
-        await pdf_button.scroll_into_view_if_needed()
         hyperlink = await get_pdf_hyperlink(instrument_number=instrument_number)
         print (f"hyperlink: {hyperlink}")
         cell_values[0] = hyperlink
