@@ -34,7 +34,7 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "s": instrument_number
     }
     headers = {
-        "Content-Type": f"application/x-www-form-urlencoded",
+        "Content-Type": f"application/x-www-form-urlencoded;charset=UTF-8",
         "Referer": f"https://www.okcc.online/index.php" 
     }
 
