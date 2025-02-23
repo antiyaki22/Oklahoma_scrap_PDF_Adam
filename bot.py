@@ -35,7 +35,8 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
     }
     headers = {
         "Content-Type": f"application/x-www-form-urlencoded;charset=UTF-8",
-        "Referer": f"https://www.okcc.online/index.php" 
+        "Referer": f"https://www.okcc.online/index.php",
+        "Origin": f"https://www.okcc.online", 
     }
 
     response = requests.post(url, data=data, headers=headers)
