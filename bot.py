@@ -37,8 +37,9 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "Content-Type": f"application/x-www-form-urlencoded;charset=UTF-8",
         "Referer": f"https://www.okcc.online/index.php",
         "Origin": f"https://www.okcc.online", 
+        "Cookie": "lhnContact=173a9be8-9906-4977-a777-84091070bf7f-39020-U3A8BSB; lhnContact=173a9be8-9906-4977-a777-84091070bf7f-39020-U3A8BSB; PHPSESSID=7jkoa088k6c3cn4trfcoq5j3ib; lhnStorageType=cookie; lhnStorageType=cookie; lhnRefresh=06ac3118-903f-4963-9779-cc179c5765e2; lhnRefresh=06ac3118-903f-4963-9779-cc179c5765e2; lhnJWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ2aXNpdG9yIiwiZG9tYWluIjoiIiwiZXhwIjoxNzQwNDAzODQyLCJpYXQiOjE3NDAzMTc0NDIsImlzcyI6eyJhcHAiOiJqc19zZGsiLCJjbGllbnQiOjM5MDIwLCJjbGllbnRfbGV2ZWwiOiJiYXNpYyIsImxobnhfZmVhdHVyZXMiOltdLCJ2aXNpdG9yX3RyYWNraW5nIjp0cnVlfSwianRpIjoiMTczYTliZTgtOTkwNi00OTc3LWE3NzctODQwOTEwNzBiZjdmIiwicmVzb3VyY2UiOnsiaWQiOiIxNzNhOWJlOC05OTA2LTQ5NzctYTc3Ny04NDA5MTA3MGJmN2YtMzkwMjAtVTNBOEJTQiIsInR5cGUiOiJFbGl4aXIuTGhuRGIuTW9kZWwuQ29yZS5WaXNpdG9yIn19.jrXQ98axZA8_ORk6vRVlLkZLhQWGhAZh7AZkx9PNYMk; lhnJWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ2aXNpdG9yIiwiZG9tYWluIjoiIiwiZXhwIjoxNzQwNDAzODQyLCJpYXQiOjE3NDAzMTc0NDIsImlzcyI6eyJhcHAiOiJqc19zZGsiLCJjbGllbnQiOjM5MDIwLCJjbGllbnRfbGV2ZWwiOiJiYXNpYyIsImxobnhfZmVhdHVyZXMiOltdLCJ2aXNpdG9yX3RyYWNraW5nIjp0cnVlfSwianRpIjoiMTczYTliZTgtOTkwNi00OTc3LWE3NzctODQwOTEwNzBiZjdmIiwicmVzb3VyY2UiOnsiaWQiOiIxNzNhOWJlOC05OTA2LTQ5NzctYTc3Ny04NDA5MTA3MGJmN2YtMzkwMjAtVTNBOEJTQiIsInR5cGUiOiJFbGl4aXIuTGhuRGIuTW9kZWwuQ29yZS5WaXNpdG9yIn19.jrXQ98axZA8_ORk6vRVlLkZLhQWGhAZh7AZkx9PNYMk",
     }
-
+    
     response = requests.post(url, data=data, headers=headers)
 
     print("Status Code:", response.status_code)
