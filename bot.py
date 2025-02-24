@@ -29,19 +29,36 @@ async def get_table_headers(page):
     header_titles[0] = "PDF"
 
 async def get_pdf_hyperlink(instrument_number: str) -> str:
+    session = requests.Session()
     url = f"https://www.okcc.online/ajax/auth-new.php"
     data = {
         "s": instrument_number
     }
     headers = {
-        "Content-Type": f"application/x-www-form-urlencoded;charset=UTF-8",
-        "Referer": f"https://www.okcc.online/index.php",
-        "Origin": f"https://www.okcc.online", 
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Origin": "https://www.okcc.online",
+        "Referer": "https://www.okcc.online/index.php",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         "X-Requested-With": "XMLHttpRequest",
+        "Sec-CH-UA": '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
+        "Sec-CH-UA-Mobile": "?0",
+        "Sec-CH-UA-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
     }
-    
-    response = requests.post(url, data=data, headers=headers)
+    cookies = {
+        "lhnContact": "173a9be8-9906-4977-a777-84091070bf7f-39020-U3A8BSB",
+        "PHPSESSID": "7jkoa088k6c3cn4trfcoq5j3ib",
+        "lhnStorageType": "cookie",
+        "lhnRefresh": "06ac3118-903f-4963-9779-cc179c5765e2",
+        "lhnJWT": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ2aXNpdG9yIiwiZG9tYWluIjoiIiwiZXhwIjoxNzQwNDAzODQyLCJpYXQiOjE3NDAzMTc0NDIsImlzcyI6eyJhcHAiOiJqc19zZGsiLCJjbGllbnQiOjM5MDIwLCJjbGllbnRfbGV2ZWwiOiJiYXNpYyIsImxobnhfZmVhdHVyZXMiOltdLCJ2aXNpdG9yX3RyYWNraW5nIjp0cnVlfSwianRpIjoiMTczYTliZTgtOTkwNi00OTc3LWE3NzctODQwOTEwNzBiZjdmIiwicmVzb3VyY2UiOnsiaWQiOiIxNzNhOWJlOC05OTA2LTQ5NzctYTc3Ny04NDA5MTA3MGJmN2YtMzkwMjAtVTNBOEJTQiIsInR5cGUiOiJFbGl4aXIuTGhuRGIuTW9kZWwuQ29yZS5WaXNpdG9yIn19.jrXQ98axZA8_ORk6vRVlLkZLhQWGhAZh7AZkx9PNYMk", 
+    }
+
+    response = session.post(url, data=data, headers=headers, cookies=cookies)
 
     print("Status Code:", response.status_code)
     print("Response Body:", response.headers)  
