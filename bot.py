@@ -53,7 +53,8 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
 
     print("Status Code:", response.status_code)
     print("Response Body:", response.headers)  
-    print("Response Content: ", response.content)
+    print("Response Content: ", response.text)
+    print("Cookies:", session.cookies.get_dict())
 
     hyperlink = f"https://www.okcc.online/document.php?s={response.text}&d=DOC436S4787&t=rod"
     return hyperlink
