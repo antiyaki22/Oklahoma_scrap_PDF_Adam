@@ -36,19 +36,13 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
     }
     headers = {
         "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "en-US,en;q=0.9",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "Origin": "https://www.okcc.online",
-        "Referer": "https://www.okcc.online/index.php",
+        "Referer": "https://www.okcc.online/index.php",  # Referrer policy consideration
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         "X-Requested-With": "XMLHttpRequest",
-        "Sec-CH-UA": '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
-        "Sec-CH-UA-Mobile": "?0",
-        "Sec-CH-UA-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin",
         "Connection": "keep-alive",
         "DNT": "1",
         "TE": "Trailers",
