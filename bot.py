@@ -49,6 +49,9 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
+        "Connection": "keep-alive",
+        "DNT": "1",
+        "TE": "Trailers",
     }
     cookies = {
         "lhnContact": "173a9be8-9906-4977-a777-84091070bf7f-39020-U3A8BSB",
