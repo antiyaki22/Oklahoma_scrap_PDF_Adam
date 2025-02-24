@@ -35,17 +35,9 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "s": instrument_number
     }
     headers = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.9",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Origin": "https://www.okcc.online",
-        "Referer": "https://www.okcc.online/index.php",  # Referrer policy consideration
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         "X-Requested-With": "XMLHttpRequest",
-        "Connection": "keep-alive",
-        "DNT": "1",
-        "TE": "Trailers",
     }
     cookies = {
         "lhnContact": "173a9be8-9906-4977-a777-84091070bf7f-39020-U3A8BSB",
@@ -55,7 +47,7 @@ async def get_pdf_hyperlink(instrument_number: str) -> str:
         "lhnJWT": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ2aXNpdG9yIiwiZG9tYWluIjoiIiwiZXhwIjoxNzQwNDAzODQyLCJpYXQiOjE3NDAzMTc0NDIsImlzcyI6eyJhcHAiOiJqc19zZGsiLCJjbGllbnQiOjM5MDIwLCJjbGllbnRfbGV2ZWwiOiJiYXNpYyIsImxobnhfZmVhdHVyZXMiOltdLCJ2aXNpdG9yX3RyYWNraW5nIjp0cnVlfSwianRpIjoiMTczYTliZTgtOTkwNi00OTc3LWE3NzctODQwOTEwNzBiZjdmIiwicmVzb3VyY2UiOnsiaWQiOiIxNzNhOWJlOC05OTA2LTQ5NzctYTc3Ny04NDA5MTA3MGJmN2YtMzkwMjAtVTNBOEJTQiIsInR5cGUiOiJFbGl4aXIuTGhuRGIuTW9kZWwuQ29yZS5WaXNpdG9yIn19.jrXQ98axZA8_ORk6vRVlLkZLhQWGhAZh7AZkx9PNYMk", 
     }
 
-    response = session.post(url, data=data, headers=headers, cookies=cookies)
+    response = session.post(url, data=data, headers=headers)
 
     print("Status Code:", response.status_code)
     print("Response Body:", response.headers)  
