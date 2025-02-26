@@ -94,18 +94,49 @@ async def main():
         
         for i in range(3):
             await page.click('div.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month svg')
+        
+        ### From Date Click ###
         dayContainer_from = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        from_dates = dayContainer_from.locator(f"text={today}")
-        from_date = from_dates.locator(":not(.prevMonthDay):not(.nextMonthDay)")
-        await from_date.click()
+        all_spans = dayContainer_from.locator('span')
+        from_date = None
+
+        for index in range(await all_spans.count()):  
+            span_element = all_spans.nth(index) 
+            text_content = await span_element.inner_text() 
+            class_attribute = await span_element.get_attribute("class") 
+
+            if text_content == "today" and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
+                from_date = span_element
+                break  
+
+        if from_date:
+            await from_date.click()
+        else:
+            print("No valid date found!")
+        ###################
 
         await page.click('#drwrapper-rod-type #rodToDateTxt')
         await asyncio.sleep(1)
 
+        ### To Date Click ###
         dayContainer_to = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        to_dates = dayContainer_to.locator(f"text={today}")
-        to_date = to_dates.locator(":not(.prevMonthDay):not(.nextMonthDay)")
-        await to_date.click()
+        all_spans = dayContainer_to.locator('span')
+        to_date = None
+
+        for index in range(await all_spans.count()):  
+            span_element = all_spans.nth(index) 
+            text_content = await span_element.inner_text() 
+            class_attribute = await span_element.get_attribute("class") 
+
+            if text_content == "today" and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
+                to_date = span_element
+                break  
+
+        if to_date:
+            await to_date.click()
+        else:
+            print("No valid date found!")
+        ###################
 
         await page.click("#rod-submit-type-search")
         await asyncio.sleep(60)
