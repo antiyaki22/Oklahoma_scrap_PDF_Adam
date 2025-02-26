@@ -95,14 +95,14 @@ async def main():
         for i in range(3):
             await page.click('div.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month svg')
         dayContainer_from = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        from_date = dayContainer_from.locator(f"text={today}").filter(has_not_class="prevMonthDay").filter(has_not_class="nextMonthDay")
+        from_date = dayContainer_from.locator(f"text={today}:not(.prevMonthDay):not(.nextMonthDay)")
         await from_date.click()
 
         await page.click('#drwrapper-rod-type #rodToDateTxt')
         await asyncio.sleep(1)
 
         dayContainer_to = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        to_date = dayContainer_to.locator(f"text={today}").filter(has_not_class="prevMonthDay").filter(has_not_class="nextMonthDay")
+        to_date = dayContainer_to.locator(f"text={today}:not(.prevMonthDay):not(.nextMonthDay)")
         await to_date.click()
 
         await page.click("#rod-submit-type-search")
