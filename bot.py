@@ -105,7 +105,7 @@ async def main():
             text_content = await span_element.inner_text() 
             class_attribute = await span_element.get_attribute("class") 
 
-            if text_content == "today" and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
+            if text_content == today and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
                 from_date = span_element
                 break  
 
@@ -128,7 +128,7 @@ async def main():
             text_content = await span_element.inner_text() 
             class_attribute = await span_element.get_attribute("class") 
 
-            if text_content == "today" and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
+            if text_content == today and ("prevMonthDay" not in (class_attribute or "")) and ("nextMonthDay" not in (class_attribute or "")):
                 to_date = span_element
                 break  
 
