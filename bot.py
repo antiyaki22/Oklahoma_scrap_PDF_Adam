@@ -94,32 +94,15 @@ async def main():
         
         for i in range(3):
             await page.click('div.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month svg')
-
         dayContainer_from = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        from_dates = dayContainer_from.locator(f"text={today}").evaluate_all(
-            lambda elements: [el for el in elements if "prevMonthDay" not in el.get_attribute("class") and "nextMonthDay" not in el.get_attribute("class")]
-        )
-        if from_dates:
-            from_date = from_dates[0]
-            from_date.click()
-        else:
-            print("No valid date found!")
-            
+        from_date = dayContainer_from.locator(f"text={today}").filter(lambda el: "prevMonthDay" not in (el.get_attribute("class") or "") and "nextMonthDay" not in (el.get_attribute("class") or ""))
         await from_date.click()
 
         await page.click('#drwrapper-rod-type #rodToDateTxt')
         await asyncio.sleep(1)
 
         dayContainer_to = page.locator('div.flatpickr-calendar.open .flatpickr-innerContainer .dayContainer')
-        to_dates = dayContainer_to.locator(f"text={today}").evaluate_all(
-            lambda elements: [el for el in elements if "prevMonthDay" not in el.get_attribute("class") and "nextMonthDay" not in el.get_attribute("class")]
-        )
-        if to_dates:
-            to_date = to_dates[0]
-            to_date.click()
-        else:
-            print("No valid date found!")
-            
+        to_date = dayContainer_to.locator(f"text={today}").filter(lambda el: "prevMonthDay" not in (el.get_attribute("class") or "") and "nextMonthDay" not in (el.get_attribute("class") or ""))
         await to_date.click()
 
         await page.click("#rod-submit-type-search")
