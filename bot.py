@@ -30,7 +30,7 @@ async def get_table_headers(page):
 
 async def get_pdf_hyperlink(page, key: str, docid: str) -> str:
     await page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)
     await page.wait_for_selector("#unofficialDocViewFrame", timeout=5000)
     
     frame = page.locator("#unofficialDocViewFrame")
@@ -45,6 +45,11 @@ async def get_pdf_hyperlink(page, key: str, docid: str) -> str:
         print("src attribute not found!")
 
     hyperlink = f"https://www.okcc.online{hyperlink}"
+    await asyncio.sleep(5)
+    await page.goto(hyperlink, timeout=60000)
+    await asyncio.sleep(5)
+    await page.go_back()
+
     return hyperlink
 
 async def scrape_table(page):
@@ -63,10 +68,8 @@ async def scrape_table(page):
         if match:
             instrument_number = match.group(1) 
             doc_id = match.group(2) 
-            print("First Parameter:", instrument_number)
-            print("Third Parameter:", doc_id)
         else:
-            print("Pattern not found!")
+            print("Document not found!")
 
         hyperlink = await get_pdf_hyperlink(page, key=instrument_number, docid=doc_id)
         print (f"hyperlink: {hyperlink}")
@@ -74,6 +77,7 @@ async def scrape_table(page):
 
         if cell_values:
             table_data.append(cell_values)
+        await asyncio.sleep(2)
 
     return table_data
 
