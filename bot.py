@@ -63,7 +63,8 @@ async def download_pdf(page, key: str, docid: str):
     os.makedirs(download_path, exist_ok=True)
 
     if pdf_url:
-        response = await page.goto(pdf_url, newtab=True)
+        pdf_page = await page.context.new_page() 
+        response = await pdf_page.goto(pdf_url)
         pdf_content = await response.body() 
 
         pdf_path = os.path.join(download_path, f'{docid}.pdf')
