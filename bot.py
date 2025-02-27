@@ -84,7 +84,7 @@ async def main():
         await page.click("text='ML - MECHANIC LIEN'")
         await page.click("#date_range_rod_type")
 
-        today = datetime.today().day
+        today = str(datetime.today().day)
 
         await page.click('#drwrapper-rod-type #rodDateFromTxt')
         await asyncio.sleep(1)
