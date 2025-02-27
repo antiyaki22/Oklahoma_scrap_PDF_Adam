@@ -2,7 +2,7 @@ import asyncio
 import csv
 import os
 from datetime import datetime
-import requests
+import re
 import subprocess
 from playwright.async_api import async_playwright
 
@@ -45,12 +45,18 @@ async def scrape_table(page):
 
         pdf_html_element = await cells[0].query_selector("div > button:first-of-type")
         pdf_html = await pdf_html_element.evaluate("element => element.outerHTML")
-        print (f"pdf html: {str(pdf_html)}")
 
-        instrument_number = cell_values[1]
-        print (f"instrument number: {instrument_number}")
+        match = re.search(r"OpenP\('([^']+)',this,'([^']+)'\)", str(pdf_html))
 
-        hyperlink = await get_pdf_hyperlink(page, instrument_number=instrument_number)
+        if match:
+            instrument_number = match.group(1) 
+            doc_id = match.group(2) 
+            print("First Parameter:", instrument_number)
+            print("Third Parameter:", doc_id)
+        else:
+            print("Pattern not found!")
+
+        hyperlink = await get_pdf_hyperlink(page, key=instrument_number, docid=doc_id)
         print (f"hyperlink: {hyperlink}")
         cell_values[0] = hyperlink
 
