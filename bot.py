@@ -36,20 +36,13 @@ async def get_pdf_hyperlink(page, key: str, docid: str) -> str:
     frame = page.locator("#unofficialDocViewFrame")
     frame_content = await frame.evaluate("element => element.outerHTML")
 
-    match = re.search(r'src="([^"]+)"', str(frame_content))
+    download_path = os.path.join(os.getcwd(), 'downloads')
+    os.makedirs(download_path, exist_ok=True)
 
-    if match:
-        hyperlink = match.group(1) 
-        print("Extracted src:", hyperlink)
-    else:
-        print("src attribute not found!")
+    pdf_path = os.path.join(download_path, f'{key}.pdf')
+    page.pdf(path=pdf_path)
 
-    hyperlink = f"https://www.okcc.online{hyperlink}"
-    await asyncio.sleep(5)
-    await page.goto(hyperlink, timeout=60000)
-    await asyncio.sleep(5)
-    await page.go_back()
-
+    hyperlink = ''
     return hyperlink
 
 async def scrape_table(page):
