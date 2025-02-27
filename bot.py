@@ -66,7 +66,7 @@ async def download_pdf(page, key: str, docid: str):
         pdf_url = page.url.split('/')[0] + '//' + page.url.split('/')[2] + pdf_url
         print(f"PDF URL found: {pdf_url}")
 
-        response = await page.context.fetch(pdf_url)
+        response = await page.goto(pdf_url)
         pdf_content = await response.body() 
 
         pdf_path = os.path.join(download_path, f'{docid}.pdf')
