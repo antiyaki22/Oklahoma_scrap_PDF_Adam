@@ -23,27 +23,23 @@ def clear_csv_file():
     if os.path.isfile(CSV_FILE):
         open(CSV_FILE, 'w').close()
 
-async def get_table_headers(page):
+async def get_table_headers(page) -> list:
     headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
     header_titles = [await header.text_content() or "N/A" for header in headers]
     header_titles[0] = "PDF"
+    return header_titles
 
-async def get_pdf_hyperlink(page, key: str, docid: str) -> str:
+async def download_pdf(page, key: str, docid: str):
     await page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
     await asyncio.sleep(5)
-    await page.wait_for_selector("#unofficialDocViewFrame", timeout=5000)
-    
-    frame = page.locator("#unofficialDocViewFrame")
-    frame_content = await frame.evaluate("element => element.outerHTML")
 
     download_path = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(download_path, exist_ok=True)
 
-    pdf_path = os.path.join(download_path, f'{key}.pdf')
-    page.pdf(path=pdf_path)
-
-    hyperlink = ''
-    return hyperlink
+    pdf_path = os.path.join(download_path, f'{docid}.pdf')
+    await page.pdf(path=pdf_path)
+    await page.click(".pdf-close")
+    await asyncio.sleep(2)
 
 async def scrape_table(page):
     table_data = []
@@ -64,9 +60,8 @@ async def scrape_table(page):
         else:
             print("Document not found!")
 
-        hyperlink = await get_pdf_hyperlink(page, key=instrument_number, docid=doc_id)
-        print (f"hyperlink: {hyperlink}")
-        cell_values[0] = hyperlink
+        await download_pdf(page, key=instrument_number, docid=doc_id)
+        cell_values[0] = f"{doc_id}.pdf"
 
         if cell_values:
             table_data.append(cell_values)
@@ -92,7 +87,7 @@ async def main():
         browser = await p.chromium.launch(headless=False)
         page = await browser.new_page()
 
-        await page.goto(TARGET_URL, timeout=90000)
+        await page.goto(TARGET_URL, timeout=60000)
 
         await page.click("div#areastyle > div.col-md-4:first-of-type ul.text-start i.fa-file-magnifying-glass")
         await page.wait_for_selector("input#rodDocTypeTxt")
