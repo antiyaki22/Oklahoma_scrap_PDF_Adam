@@ -29,10 +29,22 @@ async def get_table_headers(page):
     header_titles[0] = "PDF"
 
 async def get_pdf_hyperlink(page, key: str, docid: str) -> str:
-    page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
-    page.wait_for_selector("#unofficialDocViewFrame[src]", timeout=5000)
+    await page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
+    await asyncio.sleep(2)
+    await page.wait_for_selector("#unofficialDocViewFrame", timeout=5000)
     
-    hyperlink = ''
+    frame = page.locator("#unofficialDocViewFrame")
+    frame_content = await frame.evaluate("element => element.outerHTML")
+
+    match = re.search(r'src="([^"]+)"', str(frame_content))
+
+    if match:
+        hyperlink = match.group(1) 
+        print("Extracted src:", hyperlink)
+    else:
+        print("src attribute not found!")
+
+    hyperlink = f"https://www.okcc.online{hyperlink}"
     return hyperlink
 
 async def scrape_table(page):
@@ -161,7 +173,6 @@ async def main():
             ##################
 
             await page.click('#rod_type_table_row > div > div div.rod-pages:first-of-type i.fa-angle-right')
-            i = i + 1
 
         await browser.close()
 
