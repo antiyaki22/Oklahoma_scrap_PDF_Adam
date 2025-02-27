@@ -63,9 +63,6 @@ async def download_pdf(page, key: str, docid: str):
     os.makedirs(download_path, exist_ok=True)
 
     if pdf_url:
-        pdf_url = page.url.split('/')[0] + '//' + page.url.split('/')[2] + pdf_url
-        print(f"PDF URL found: {pdf_url}")
-
         response = await page.goto(pdf_url)
         pdf_content = await response.body() 
 
