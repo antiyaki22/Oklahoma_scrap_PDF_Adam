@@ -43,9 +43,9 @@ async def scrape_table(page):
         cells = await row.query_selector_all(TABLE_CELL_SELECTOR)
         cell_values = [await cell.text_content() or "N/A" for cell in cells]
 
-        pdf_html_element = cells[0].locator("div > button:first-of-type")
+        pdf_html_element = cells[0].query_selector("div > button:first-of-type")
         pdf_html = await pdf_html_element.evaluate("element => element.outerHTML")
-        print (f"pdf html: {pdf_html}")
+        print (f"pdf html: {str(pdf_html)}")
 
         instrument_number = cell_values[1]
         print (f"instrument number: {instrument_number}")
