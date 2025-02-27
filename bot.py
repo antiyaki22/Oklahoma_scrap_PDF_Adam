@@ -19,6 +19,22 @@ def ensure_playwright_browsers():
     except Exception as e:
         print(f"Error installing Playwright: {e}")
 
+def clear_downloads_folder(download_path):
+    if os.path.exists(download_path):  
+        for filename in os.listdir(download_path):
+            file_path = os.path.join(download_path, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path) 
+                    print(f"Removed: {file_path}")
+                elif os.path.isdir(file_path):
+                    os.rmdir(file_path) 
+                    print(f"Removed directory: {file_path}")
+            except Exception as e:
+                print(f"Error removing {file_path}: {e}")
+    else:
+        print(f"Directory {download_path} does not exist.")
+
 def clear_csv_file():
     if os.path.isfile(CSV_FILE):
         open(CSV_FILE, 'w').close()
@@ -36,8 +52,11 @@ async def download_pdf(page, key: str, docid: str):
     download_path = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(download_path, exist_ok=True)
 
-    pdf_path = os.path.join(download_path, f'{docid}.pdf')
-    await page.pdf(path=pdf_path)
+    async def handle_download(download):
+        pdf_path = os.path.join(download_path, f"{docid}.pdf")
+        await download.save_as(pdf_path)
+
+    page.on("download", handle_download)
     await page.click(".pdf-close")
     await asyncio.sleep(2)
 
@@ -81,7 +100,12 @@ def save_to_csv(data, headers, append=True):
         writer.writerows(data)
 
 async def main():
+    
     clear_csv_file()
+
+    download_path = os.path.join(os.getcwd(), 'downloads')
+    os.makedirs(download_path, exist_ok=True)
+    clear_downloads_folder(download_path)
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
