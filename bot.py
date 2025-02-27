@@ -46,17 +46,35 @@ async def get_table_headers(page) -> list:
     return header_titles
 
 async def download_pdf(page, key: str, docid: str):
+    pdf_url = None
+    def response_handler(response):
+        nonlocal pdf_url
+        if response.url.startswith("/document.php") and response.headers.get('content-type', '').startswith('application/pdf'):
+            pdf_url = response.url
+            print (f"pdf_url: {pdf_url}")
+
+    page.on('response', response_handler)
+
     await page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
     await asyncio.sleep(5)
 
     download_path = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(download_path, exist_ok=True)
 
-    async def handle_download(download):
-        pdf_path = os.path.join(download_path, f"{docid}.pdf")
-        await download.save_as(pdf_path)
+    if pdf_url:
+        pdf_url = page.url.split('/')[0] + '//' + page.url.split('/')[2] + pdf_url
+        print(f"PDF URL found: {pdf_url}")
 
-    page.on("download", handle_download)
+        response = await page.context.fetch(pdf_url)
+        pdf_content = await response.body() 
+
+        pdf_path = os.path.join(download_path, f'{docid}.pdf')
+        with open(pdf_path, 'wb') as pdf_file:
+            pdf_file.write(pdf_content)
+        print(f"PDF downloaded to: {pdf_path}")
+    else:
+        print("No PDF content found after invoking the OpenP function.")
+    
     await page.click(".pdf-close")
     await asyncio.sleep(2)
 
