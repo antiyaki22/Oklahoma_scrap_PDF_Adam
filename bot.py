@@ -49,7 +49,7 @@ async def download_pdf(page, key: str, docid: str):
     pdf_url = None
     def response_handler(response):
         nonlocal pdf_url
-        print (f"response body: {response.url}")
+        print (f"response url: {response.url}")
         if response.url.startswith("https://www.okcc.online/document.php") and response.headers.get('content-type', '').startswith('application/pdf'):
             pdf_url = response.url
             print (f"pdf_url: {pdf_url}")
