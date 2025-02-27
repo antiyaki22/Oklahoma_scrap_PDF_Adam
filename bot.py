@@ -46,15 +46,15 @@ async def get_table_headers(page) -> list:
     return header_titles
 
 async def download_pdf(page, key: str, docid: str):
-    pdf_url = None
-    def response_handler(response):
-        nonlocal pdf_url
-        print (f"response url: {response.url}")
-        if response.url.startswith("https://www.okcc.online/document.php") and response.headers.get('content-type', '').startswith('application/pdf'):
-            pdf_url = response.url
-            print (f"pdf_url: {pdf_url}")
+    # pdf_url = None
+    # def response_handler(response):
+    #     nonlocal pdf_url
+    #     print (f"response url: {response.url}")
+    #     if response.url.startswith("https://www.okcc.online/document.php") and response.headers.get('content-type', '').startswith('application/pdf'):
+    #         pdf_url = response.url
+    #         print (f"pdf_url: {pdf_url}")
 
-    page.on('response', response_handler)
+    # page.on('response', response_handler)
 
     await page.evaluate(f'OpenP("{key}", document.body, "{docid}");')
     await asyncio.sleep(5)
@@ -62,16 +62,23 @@ async def download_pdf(page, key: str, docid: str):
     download_path = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(download_path, exist_ok=True)
 
-    if pdf_url:
-        response = await page.goto(pdf_url)
-        pdf_content = await response.body() 
+    pdf_content = await page.body() 
 
-        pdf_path = os.path.join(download_path, f'{docid}.pdf')
-        with open(pdf_path, 'wb') as pdf_file:
-            pdf_file.write(pdf_content)
-        print(f"PDF downloaded to: {pdf_path}")
-    else:
-        print("No PDF content found after invoking the OpenP function.")
+    pdf_path = os.path.join(download_path, f'{docid}.pdf')
+    with open(pdf_path, 'wb') as pdf_file:
+        pdf_file.write(pdf_content)
+    print(f"PDF downloaded to: {pdf_path}")
+
+    # if pdf_url:
+    #     response = await page.goto(pdf_url)
+    #     pdf_content = await response.body() 
+
+    #     pdf_path = os.path.join(download_path, f'{docid}.pdf')
+    #     with open(pdf_path, 'wb') as pdf_file:
+    #         pdf_file.write(pdf_content)
+    #     print(f"PDF downloaded to: {pdf_path}")
+    # else:
+    #     print("No PDF content found after invoking the OpenP function.")
     
     await page.click(".pdf-close")
     await asyncio.sleep(2)
