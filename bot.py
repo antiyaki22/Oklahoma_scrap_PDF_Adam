@@ -49,10 +49,8 @@ async def download_pdf(page, key: str, docid: str):
     pdf_url = None
     def response_handler(response):
         nonlocal pdf_url
-        print (f"response url: {response.url}")
         if response.url.startswith("https://www.okcc.online/document.php") and response.headers.get('content-type', '').startswith('application/pdf'):
             pdf_url = response.url
-            print (f"pdf_url: {pdf_url}")
 
     page.on('response', response_handler)
 
@@ -69,14 +67,15 @@ async def download_pdf(page, key: str, docid: str):
         pdf_path = os.path.join(download_path, f"{docid}.pdf")
         
         with open(pdf_path, 'wb') as pdf_file:
-            pdf_file.write(pdf_content)
-        
-        print(f"✅ PDF downloaded successfully to: {pdf_path}")
+            pdf_file.write(pdf_content)     
     else:
         print("❌ Failed to fetch PDF.")
     
     await page.click(".pdf-close")
     await asyncio.sleep(2)
+
+async def process_pdf(docid: str):
+    return
 
 async def scrape_table(page):
     table_data = []
@@ -99,6 +98,8 @@ async def scrape_table(page):
 
         await download_pdf(page, key=instrument_number, docid=doc_id)
         cell_values[0] = f"{doc_id}.pdf"
+
+        await process_pdf(docid=doc_id)
 
         if cell_values:
             table_data.append(cell_values)
