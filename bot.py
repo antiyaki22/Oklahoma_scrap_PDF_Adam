@@ -63,19 +63,18 @@ async def download_pdf(page, key: str, docid: str):
     os.makedirs(download_path, exist_ok=True)
 
     if pdf_url:
-        context = page.context
-        pdf_page = await context.new_page()
-        response = await pdf_page.goto(pdf_url)
+        response = await page.goto(pdf_url)
         pdf_content = await response.body() 
 
         pdf_path = os.path.join(download_path, f'{docid}.pdf')
         with open(pdf_path, 'wb') as pdf_file:
             pdf_file.write(pdf_content)
         print(f"PDF downloaded to: {pdf_path}")
+        await page.go_back()
     else:
         print("No PDF content found after invoking the OpenP function.")
     
-    await page.click(".pdf-close")
+    # await page.click(".pdf-close")
     await asyncio.sleep(2)
 
 async def scrape_table(page):
