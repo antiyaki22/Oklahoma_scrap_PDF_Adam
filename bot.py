@@ -185,7 +185,7 @@ async def main():
     clear_csv_file()
 
     download_path = os.path.join(os.getcwd(), 'downloads')
-    output_path = os.path.join(os.getcwd(), 'output')
+    output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoFromPDF')
     os.makedirs(download_path, exist_ok=True)
     clear_downloads_output_folder(download_path, output_path)
 
