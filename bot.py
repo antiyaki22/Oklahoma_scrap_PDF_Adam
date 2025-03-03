@@ -4,6 +4,9 @@ import os
 from datetime import datetime
 import re
 import subprocess
+from sdk.extract_text_info_from_pdf import ExtractTextInfoFromPDF
+import json
+import zipfile
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.okcc.online/index.php"
@@ -39,10 +42,36 @@ def clear_csv_file():
     if os.path.isfile(CSV_FILE):
         open(CSV_FILE, 'w').close()
 
+def extract_largest_dollar_amount(json_file_path):
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    
+    dollar_values = []
+    
+    for element in data.get("elements", []):
+        text = element.get("Text", "")
+        match = re.search(r"\$\s?([\d,]+\.?\d*)", text)
+        if match:
+            amount = float(match.group(1).replace(',', ''))
+            dollar_values.append(amount)
+
+    return max(dollar_values, default=None)
+
+def unzip_file(zip_file_path, output_folder):
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        zip_ref.extractall(output_folder)
+
+def remove_zip_file(zip_file_path):
+    try:
+        os.remove(zip_file_path)
+    except Exception as e:
+        print(f"Error removing zip file: {e}")
+
 async def get_table_headers(page) -> list:
     headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
     header_titles = [await header.text_content() or "N/A" for header in headers]
     header_titles[0] = "PDF"
+    header_titles.append("Dollar Amount")
     return header_titles
 
 async def download_pdf(page, key: str, docid: str):
@@ -74,8 +103,31 @@ async def download_pdf(page, key: str, docid: str):
     await page.click(".pdf-close")
     await asyncio.sleep(2)
 
-async def process_pdf(docid: str):
-    return
+async def process_pdf(docid: str) -> str:
+    input_pdf_path = f"downloads/{docid}.pdf"
+    pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
+    ExtractTextInfoFromPDF(input_pdf_path)
+    
+    output_folder = "output"
+    time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
+        
+    unzip_file(zip_file_path, output_folder)
+    remove_zip_file(zip_file_path)
+
+    json_file_path = f"{output_folder}/structuredData.json"
+    renamed_json_path = f"{output_folder}/{pdf_filename}.json"
+
+    os.rename(json_file_path, renamed_json_path)    
+    largest_value = extract_largest_dollar_amount(renamed_json_path)
+    
+    dollar = ''
+    if largest_value is not None:
+        print(f"Dollar amount: ${largest_value}")
+        dollar = str(largest_value)
+    else:
+        print("No dollar amounts found.")
+    return dollar
 
 async def scrape_table(page):
     table_data = []
@@ -99,7 +151,8 @@ async def scrape_table(page):
         await download_pdf(page, key=instrument_number, docid=doc_id)
         cell_values[0] = f"{doc_id}.pdf"
 
-        await process_pdf(docid=doc_id)
+        dollar = await process_pdf(docid=doc_id)
+        cell_values.append(dollar)
 
         if cell_values:
             table_data.append(cell_values)
@@ -118,8 +171,7 @@ def save_to_csv(data, headers, append=True):
 
         writer.writerows(data)
 
-async def main():
-    
+async def main():    
     clear_csv_file()
 
     download_path = os.path.join(os.getcwd(), 'downloads')
