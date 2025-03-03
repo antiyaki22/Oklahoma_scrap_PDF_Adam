@@ -172,12 +172,11 @@ async def scrape_table(page, headers):
 
 def save_to_csv(data, headers, append=True):
     file_exists = os.path.isfile(CSV_FILE)
-    is_empty = not file_exists or os.stat(CSV_FILE).st_size == 0  
 
     with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
 
-        if is_empty and headers:
+        if not file_exists:
             writer.writerow(headers)
 
         writer.writerows(data)
