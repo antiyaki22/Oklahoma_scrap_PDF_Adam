@@ -138,7 +138,7 @@ async def process_pdf(docid: str) -> str:
     dollar = ''
     if largest_value is not None:
         print(f"Dollar amount: ${largest_value}")
-        dollar = str(largest_value)
+        dollar = f"${str(largest_value)}"
     else:
         print("No dollar amounts found.")
     return dollar
