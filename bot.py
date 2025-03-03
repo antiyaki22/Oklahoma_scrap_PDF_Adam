@@ -129,8 +129,7 @@ async def process_pdf(docid: str) -> str:
         print("No dollar amounts found.")
     return dollar
 
-async def scrape_table(page):
-    table_data = []
+async def scrape_table(page, headers):
     rows = await page.query_selector_all(TABLE_ROW_SELECTOR)
 
     for row in rows:
@@ -154,11 +153,8 @@ async def scrape_table(page):
         dollar = await process_pdf(docid=doc_id)
         cell_values.append(dollar)
 
-        if cell_values:
-            table_data.append(cell_values)
+        save_to_csv([cell_values], headers=headers, append=True)
         await asyncio.sleep(2)
-
-    return table_data
 
 def save_to_csv(data, headers, append=True):
     file_exists = os.path.isfile(CSV_FILE)
@@ -166,7 +162,7 @@ def save_to_csv(data, headers, append=True):
     with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
 
-        if not file_exists or not append:
+        if not file_exists:
             writer.writerow(headers)
 
         writer.writerows(data)
@@ -251,15 +247,7 @@ async def main():
         headers = await get_table_headers(page)
 
         for i in range(int(num_pages)):
-
-            ### Main Logic ###
-            table_data = await scrape_table(page)
-            if i == 0:
-                save_to_csv(table_data, headers, append=False) 
-            else:
-                save_to_csv(table_data, None, append=True) 
-            ##################
-
+            await scrape_table(page, headers=headers)
             await page.click('#rod_type_table_row > div > div div.rod-pages:first-of-type i.fa-angle-right')
 
         await browser.close()
