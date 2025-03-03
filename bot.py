@@ -108,7 +108,7 @@ async def process_pdf(docid: str) -> str:
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
     ExtractTextInfoFromPDF(input_pdf_path)
     
-    output_folder = "output"
+    output_folder = "output/ExtractTextInfoFromPDF"
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
         
