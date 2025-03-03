@@ -66,8 +66,11 @@ def extract_largest_dollar_amount(json_file_path):
         text = element.get("Text", "")
         match = re.search(r"\$\s?([\d,]+\.?\d*)", text)
         if match:
-            amount = float(match.group(1).replace(',', ''))
-            dollar_values.append(amount)
+            try:
+                amount = float(match.group(1).replace(',', ''))
+                dollar_values.append(amount)
+            except Exception as e:
+                print(f"Error converting dollar amount: {e}")
 
     return max(dollar_values, default=None)
 
