@@ -71,7 +71,6 @@ def extract_dollar_amount(json_file_path):
         r"total \$\s?([^ ]+)",
         r"is\$\s?([^ ]+)",
         r"of\$\s?([^ ]+)",
-        r"\s?\$\s?([^ ]+\.)",
         r"j\$([^\s]+)",
         r"j \$([^\s]+)"
     ]
