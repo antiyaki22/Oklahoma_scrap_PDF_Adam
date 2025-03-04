@@ -294,7 +294,6 @@ async def main():
 
         num_pages_element = page.locator('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
         num_pages = await num_pages_element.text_content()
-        print (f"page counts: {num_pages}")
 
         headers = await get_table_headers(page)
 
