@@ -6,6 +6,7 @@ import re
 import subprocess
 from sdk.extract_text_info_from_pdf import ExtractTextInfoFromPDF
 import json
+import spacy
 import zipfile
 from playwright.async_api import async_playwright
 
@@ -15,6 +16,8 @@ CSV_FILE = "result.csv"
 TABLE_HEADER_SELECTOR = "#rod-table thead tr th"
 TABLE_ROW_SELECTOR = "#rodinitialbody tr"
 TABLE_CELL_SELECTOR = "td"
+
+nlp = spacy.load("en_core_web_sm")
 
 def ensure_playwright_browsers():
     try:
@@ -56,20 +59,31 @@ def clear_csv_file():
     if os.path.isfile(CSV_FILE):
         open(CSV_FILE, 'w').close()
 
-def extract_largest_dollar_amount(json_file_path):
+def extract_dollar_amount(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
     
-    dollar_values = []
-    
     for element in data.get("elements", []):
         text = element.get("Text", "")
-        match = re.search(r"\$\s?([\d,]+\.?\d*)", text)
+        match = re.search(r"\b(?:price|sum|amount|due) of \$\s?([\d,]+\.?\d*)", text, re.IGNORECASE)
         if match:
-            amount = float(match.group(1).replace(',', ''))
-            dollar_values.append(amount)
+            return f"${match.group(1).replace(',', '')}"
 
-    return max(dollar_values, default=None)
+    return None
+
+def extract_full_name(json_file_path):
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    for element in data.get("elements", []):
+        text = element.get("Text", "")
+        doc = nlp(text)
+        
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                return ent.text  # Return the first detected full name immediately
+
+    return None
 
 def unzip_file(zip_file_path, output_folder):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
@@ -85,6 +99,7 @@ async def get_table_headers(page) -> list:
     headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
     header_titles = [await header.text_content() or "N/A" for header in headers]
     header_titles[0] = "PDF"
+    header_titles.append("Contact Name")
     header_titles.append("Dollar Amount")
     return header_titles
 
@@ -117,7 +132,7 @@ async def download_pdf(page, key: str, docid: str):
     await page.click(".pdf-close")
     await asyncio.sleep(2)
 
-async def process_pdf(docid: str) -> str:
+async def process_pdf(docid: str) -> tuple:
     input_pdf_path = f"downloads/{docid}.pdf"
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
     ExtractTextInfoFromPDF(input_pdf_path)
@@ -133,15 +148,14 @@ async def process_pdf(docid: str) -> str:
     renamed_json_path = f"{output_folder}/{pdf_filename}.json"
 
     os.rename(json_file_path, renamed_json_path)    
-    largest_value = extract_largest_dollar_amount(renamed_json_path)
-    
-    dollar = ''
-    if largest_value is not None:
-        print(f"Dollar amount: ${largest_value}")
-        dollar = f"${str(largest_value)}"
-    else:
-        print("No dollar amounts found.")
-    return dollar
+
+    dollar_amount = extract_dollar_amount(renamed_json_path)
+    full_name = extract_full_name(renamed_json_path)
+
+    print(f"Extracted Full Name: {full_name}")
+    print(f"Extracted Dollar Amount: {dollar_amount}")
+
+    return full_name, dollar_amount
 
 async def scrape_table(page, headers):
     rows = await page.query_selector_all(TABLE_ROW_SELECTOR)
@@ -164,7 +178,8 @@ async def scrape_table(page, headers):
         await download_pdf(page, key=instrument_number, docid=doc_id)
         cell_values[0] = f"{doc_id}.pdf"
 
-        dollar = await process_pdf(docid=doc_id)
+        contact_name, dollar = await process_pdf(docid=doc_id)
+        cell_values.append(contact_name)
         cell_values.append(dollar)
 
         save_to_csv([cell_values], headers=headers, append=True)
