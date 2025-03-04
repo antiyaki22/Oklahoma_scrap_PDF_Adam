@@ -66,7 +66,7 @@ def extract_dollar_amount(json_file_path):
     for element in data.get("elements", []):
         text = element.get("Text", "")
         
-        match = re.search(r"(?:of \$|\(\$|\$\s?.*due\s|\bis \$|\btotal \$)([\d,]+\.?\d*)", text, re.IGNORECASE)
+        match = re.search(r"(?:of \$|\(\$|\$\s?.*due\s|\bis \$|\btotal \$)([\d,]+(?:\.\d{1,2})?)", text, re.IGNORECASE)
         
         if match:
             return f"${match.group(1).replace(',', '')}"
