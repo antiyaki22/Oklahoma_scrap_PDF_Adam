@@ -68,7 +68,6 @@ def extract_dollar_amount(json_file_path):
         match = re.search(r"\b(?:price|sum|amount|due) of \$\s?([\d,]+\.?\d*)", text, re.IGNORECASE)
         if match:
             return f"${match.group(1).replace(',', '')}"
-
     return None
 
 def extract_full_name(json_file_path):
