@@ -9,6 +9,7 @@
 import logging
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 
 from adobe.pdfservices.operation.auth.service_principal_credentials import ServicePrincipalCredentials
 from adobe.pdfservices.operation.exception.exceptions import ServiceApiException, ServiceUsageException, SdkException
@@ -23,7 +24,7 @@ from adobe.pdfservices.operation.pdfjobs.result.extract_pdf_result import Extrac
 
 # Initialize the logger
 logging.basicConfig(level=logging.INFO)
-
+load_dotenv()
 
 #
 # This sample illustrates how to extract Text Information from PDF.
