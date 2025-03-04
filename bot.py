@@ -64,11 +64,11 @@ def extract_dollar_amount(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"of \$([^ ]+)",         
-        r"\(\$([^ ]+)\)",          
-        r"\$([^ ]+) due",           
-        r"is \$([^ ]+)",           
-        r"total \$([^ ]+)"          
+        r"of \$\s?([^ ]+)",      
+        r"\(\$\s?([^ ]+)\)",      
+        r"\$\s?([^ ]+) due",         
+        r"is \$\s?([^ ]+)",          
+        r"total \$\s?([^ ]+)",   
     ]
     
     for element in data.get("elements", []):
@@ -166,7 +166,7 @@ async def process_pdf(docid: str) -> tuple:
 
     os.rename(json_file_path, renamed_json_path)    
 
-    dollar_amount = extract_dollar_amount(renamed_json_path)
+    dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
     full_name = extract_full_name(renamed_json_path)
 
     print(f"Extracted Full Name: {full_name}")
