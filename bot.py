@@ -65,23 +65,33 @@ def extract_dollar_amount(json_file_path):
     
     for element in data.get("elements", []):
         text = element.get("Text", "")
-        match = re.search(r"\b(?:price|sum|amount|due) of \$\s?([\d,]+\.?\d*)", text, re.IGNORECASE)
+        
+        match = re.search(r"(?:of \$|\(\$)([\d,]+\.?\d*)(?:\))?", text)
+        
         if match:
             return f"${match.group(1).replace(',', '')}"
+    
     return None
 
 def extract_full_name(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
 
+    full_names = []  
+    
     for element in data.get("elements", []):
         text = element.get("Text", "")
         doc = nlp(text)
         
         for ent in doc.ents:
             if ent.label_ == "PERSON":
-                return ent.text  # Return the first detected full name immediately
-
+                name_parts = ent.text.split()
+                if len(name_parts) == 2:  
+                    full_names.append(ent.text)
+    
+    if full_names:
+        return full_names[0] 
+    
     return None
 
 def unzip_file(zip_file_path, output_folder):
