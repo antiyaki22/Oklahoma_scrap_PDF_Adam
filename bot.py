@@ -62,14 +62,22 @@ def clear_csv_file():
 def extract_dollar_amount(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
+
+    patterns = [
+        r"of \$([^ ]+)",         
+        r"\(\$([^ ]+)\)",          
+        r"\$([^ ]+) due",           
+        r"is \$([^ ]+)",           
+        r"total \$([^ ]+)"          
+    ]
     
     for element in data.get("elements", []):
         text = element.get("Text", "")
         
-        match = re.search(r"(?:of \$|\(\$|\$\s?.*due\s|\bis \$|\btotal \$)([\d,]+(?:\.\d{1,2})?)", text, re.IGNORECASE)
-        
-        if match:
-            return f"${match.group(1).replace(',', '')}"
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                return match.group(1)  
     
     return None
 
