@@ -64,11 +64,15 @@ def extract_dollar_amount(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"of \$\s?([^ ]+)",      
-        r"\(\$\s?([^ ]+)\)",      
-        r"\$\s?([^ ]+) due",         
-        r"is \$\s?([^ ]+)",          
-        r"total \$\s?([^ ]+)",   
+        r"of \$\s?([^ ]+)",
+        r"\(\$\s?([^ ]+)\)",
+        r"\$\s?([^ ]+) due",
+        r"is \$\s?([^ ]+)",
+        r"total \$\s?([^ ]+)",
+        r"is\$\s?([^ ]+)",
+        r"of\$\s?([^ ]+)",
+        r"\s?\$\s?([^ ]+)\s",
+        r"\s?\$\s?([^ ]+)\s?"
     ]
     
     for element in data.get("elements", []):
@@ -77,7 +81,7 @@ def extract_dollar_amount(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(1)  
+                return match.group(1)
     
     return None
 
