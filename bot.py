@@ -65,15 +65,15 @@ def extract_dollar_amount(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"of \$\s?([\d,]+\.?\d*)",
-        r"\(\$\s?([\d,]+\.?\d*)\)",
-        r"\$\s?([\d,]+\.?\d*) due",
-        r"is \$\s?([\d,]+\.?\d*)",
-        r"total \$\s?([\d,]+\.?\d*)",
-        r"is\$\s?([\d,]+\.?\d*)",
-        r"of\$\s?([\d,]+\.?\d*)",
-        r"j\$([\d,]+\.?\d*)",
-        r"j \$([\d,]+\.?\d*)"
+        r"of \$\s?([\d,]+\.\d{2})",
+        r"\(\$\s?([\d,]+\.\d{2})\)",
+        r"\$\s?([\d,]+\.\d{2}) due",
+        r"is \$\s?([\d,]+\.\d{2})",
+        r"total \$\s?([\d,]+\.\d{2})",
+        r"is\$\s?([\d,]+\.\d{2})",
+        r"of\$\s?([\d,]+\.\d{2})",
+        r"j\$([\d,]+\.\d{2})",
+        r"j \$([\d,]+\.\d{2})"
     ]
 
     all_amounts = []
@@ -84,15 +84,15 @@ def extract_dollar_amount(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(1) 
+                return match.group(1)
 
-        dollar_matches = re.findall(r"\$\s?([\d,]+\.?\d*)", text)
+        dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{2})", text)  
         all_amounts.extend(dollar_matches)
 
     if all_amounts:
         return max(all_amounts, key=lambda x: float(x.replace(",", "")))
 
-    return "0" 
+    return "0"
 
 def extract_full_name(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -108,7 +108,8 @@ def extract_full_name(json_file_path):
         for ent in doc.ents:
             if ent.label_ == "PERSON":
                 name_parts = ent.text.split()
-                if len(name_parts) == 2:  
+
+                if len(name_parts) > 1:  
                     full_names.append(ent.text)
                 
                 match = re.search(r"against\s+" + re.escape(ent.text), text, re.IGNORECASE)
@@ -122,8 +123,7 @@ def extract_phone_number(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"\(\d{3}\)\s?\d{3}[-.\s]?\d{4}",
-        r"\d{3}[-.\s]?\d{3}[-.\s]?\d{4}",  
+        r"\(\d{3}\)\s?\d{3}[-.\s]?\d{4}",  
     ]
 
     all_numbers = []
@@ -134,13 +134,17 @@ def extract_phone_number(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(0)  
+                return match.group(0)
 
         number_matches = re.findall(r"\d{10,}", text)  
         all_numbers.extend(number_matches)
 
-    if all_numbers:
-        return max(all_numbers, key=len)
+    formatted_numbers = [
+        f"({num[:3]}) {num[3:6]}-{num[6:10]}" for num in all_numbers if len(num) >= 10
+    ]
+
+    if formatted_numbers:
+        return max(formatted_numbers, key=len)
 
     return "No valid phone number found"
 
