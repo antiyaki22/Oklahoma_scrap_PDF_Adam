@@ -64,27 +64,35 @@ def extract_dollar_amount(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"of \$\s?([^ ]+)",
-        r"\(\$\s?([^ ]+)\)",
-        r"\$\s?([^ ]+) due",
-        r"is \$\s?([^ ]+)",
-        r"total \$\s?([^ ]+)",
-        r"is\$\s?([^ ]+)",
-        r"of\$\s?([^ ]+)",
-        r"j\$([^\s]+)",
-        r"j \$([^\s]+)",
-        r"\$\s([^ ]+)\s" 
+        r"of \$\s?([\d,]+\.?\d*)",
+        r"\(\$\s?([\d,]+\.?\d*)\)",
+        r"\$\s?([\d,]+\.?\d*) due",
+        r"is \$\s?([\d,]+\.?\d*)",
+        r"total \$\s?([\d,]+\.?\d*)",
+        r"is\$\s?([\d,]+\.?\d*)",
+        r"of\$\s?([\d,]+\.?\d*)",
+        r"j\$([\d,]+\.?\d*)",
+        r"j \$([\d,]+\.?\d*)",
+        r"\$\s([\d,]+\.?\d*)\s"
     ]
-    
+
+    all_amounts = []
+
     for element in data.get("elements", []):
         text = element.get("Text", "")
-        
+
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(1)
-    
-    return None
+                return match.group(1)  
+
+        dollar_matches = re.findall(r"\$\s?([\d,]+\.?\d*)", text)
+        all_amounts.extend(dollar_matches)
+
+    if all_amounts:
+        return max(all_amounts, key=lambda x: float(x.replace(",", "")))
+
+    return "0" 
 
 def extract_full_name(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -107,6 +115,63 @@ def extract_full_name(json_file_path):
     
     return None
 
+def extract_phone_number(json_file_path):
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    patterns = [
+        r"\(\d{3}\)\s?\d{3}[-.\s]?\d{4}",
+        r"\d{3}[-.\s]?\d{3}[-.\s]?\d{4}",  
+        r"\d{10}"  
+    ]
+
+    all_numbers = []
+
+    for element in data.get("elements", []):
+        text = element.get("Text", "")
+
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                return match.group(0)  
+
+        number_matches = re.findall(r"\d{10,}", text)  
+        all_numbers.extend(number_matches)
+
+    if all_numbers:
+        return max(all_numbers, key=len)
+
+    return "No valid phone number found"
+
+def extract_address(json_file_path):
+    with open(json_file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+
+    patterns = [
+        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+,\s?[A-Za-z]{2}\s?\d{5}(-\d{4})?",  
+        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+,\s?\d{5}(-\d{4})?", 
+        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+", 
+        r"[A-Za-z\s]+,\s?[A-Za-z]{2}\s?\d{5}(-\d{4})?",
+    ]
+
+    all_addresses = []
+
+    for element in data.get("elements", []):
+        text = element.get("Text", "")
+
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                return match.group(0)  
+
+        if any(keyword in text.lower() for keyword in ["street", "st.", "road", "rd.", "avenue", "ave.", "blvd", "lane", "ln.", "drive", "dr.", "city", "state", "zip"]):
+            all_addresses.append(text)
+
+    if all_addresses:
+        return max(all_addresses, key=len)
+
+    return "No valid address found"  
+
 def unzip_file(zip_file_path, output_folder):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(output_folder)
@@ -123,6 +188,8 @@ async def get_table_headers(page) -> list:
     header_titles[0] = "PDF"
     header_titles.append("Contact Name")
     header_titles.append("Dollar Amount")
+    header_titles.append("Phone Number")
+    header_titles.append("Address")
     return header_titles
 
 async def download_pdf(page, key: str, docid: str):
@@ -173,11 +240,15 @@ async def process_pdf(docid: str) -> tuple:
 
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
     full_name = extract_full_name(renamed_json_path)
+    phone_number = extract_phone_number(renamed_json_path)
+    address = extract_address(renamed_json_path)
 
     print(f"Extracted Full Name: {full_name}")
     print(f"Extracted Dollar Amount: {dollar_amount}")
+    print(f"Extracted Phone Number: {phone_number}")
+    print(f"Extracted Address: {address}")
 
-    return full_name, dollar_amount
+    return full_name, dollar_amount, phone_number, address
 
 async def scrape_table(page, headers):
     rows = await page.query_selector_all(TABLE_ROW_SELECTOR)
@@ -200,9 +271,11 @@ async def scrape_table(page, headers):
         await download_pdf(page, key=instrument_number, docid=doc_id)
         cell_values[0] = f"{doc_id}.pdf"
 
-        contact_name, dollar = await process_pdf(docid=doc_id)
+        contact_name, dollar, phone, address = await process_pdf(docid=doc_id)
         cell_values.append(contact_name)
         cell_values.append(dollar)
+        cell_values.append(phone)
+        cell_values.append(address)
 
         save_to_csv([cell_values], headers=headers, append=True)
         await asyncio.sleep(2)
