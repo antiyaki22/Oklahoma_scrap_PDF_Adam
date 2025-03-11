@@ -72,8 +72,7 @@ def extract_dollar_amount(json_file_path):
         r"is\$\s?([\d,]+\.?\d*)",
         r"of\$\s?([\d,]+\.?\d*)",
         r"j\$([\d,]+\.?\d*)",
-        r"j \$([\d,]+\.?\d*)",
-        r"\$\s([\d,]+\.?\d*)\s"
+        r"j \$([\d,]+\.?\d*)"
     ]
 
     all_amounts = []
@@ -84,7 +83,7 @@ def extract_dollar_amount(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(1)  
+                return match.group(1) 
 
         dollar_matches = re.findall(r"\$\s?([\d,]+\.?\d*)", text)
         all_amounts.extend(dollar_matches)
@@ -99,21 +98,23 @@ def extract_full_name(json_file_path):
         data = json.load(file)
 
     full_names = []  
-    
+    priority_name = None  
+
     for element in data.get("elements", []):
         text = element.get("Text", "")
         doc = nlp(text)
-        
+
         for ent in doc.ents:
             if ent.label_ == "PERSON":
                 name_parts = ent.text.split()
                 if len(name_parts) == 2:  
                     full_names.append(ent.text)
-    
-    if full_names:
-        return full_names[0] 
-    
-    return None
+                
+                match = re.search(r"against\s+" + re.escape(ent.text), text, re.IGNORECASE)
+                if match:
+                    priority_name = ent.text  
+
+    return priority_name if priority_name else (full_names[0] if full_names else None)
 
 def extract_phone_number(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -122,7 +123,6 @@ def extract_phone_number(json_file_path):
     patterns = [
         r"\(\d{3}\)\s?\d{3}[-.\s]?\d{4}",
         r"\d{3}[-.\s]?\d{3}[-.\s]?\d{4}",  
-        r"\d{10}"  
     ]
 
     all_numbers = []
