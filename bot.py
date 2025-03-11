@@ -368,7 +368,7 @@ async def main():
         ###################
 
         await page.click("#rod-submit-type-search")
-        await asyncio.sleep(70)
+        await asyncio.sleep(120)
 
         num_pages_element = page.locator('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
         num_pages = await num_pages_element.text_content()
