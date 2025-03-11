@@ -18,6 +18,7 @@ TABLE_ROW_SELECTOR = "#rodinitialbody tr"
 TABLE_CELL_SELECTOR = "td"
 
 nlp = spacy.load("en_core_web_sm")
+months = 3
 
 def ensure_playwright_browsers():
     try:
@@ -316,7 +317,7 @@ async def main():
         await page.click('#drwrapper-rod-type #rodDateFromTxt')
         await asyncio.sleep(1)
         
-        for i in range(1):
+        for i in range(months):
             await page.click('div.flatpickr-calendar.open .flatpickr-months .flatpickr-prev-month svg')
         
         ### From Date Click ###
