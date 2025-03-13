@@ -248,10 +248,8 @@ async def process_pdf(docid: str) -> tuple:
     phone_number = extract_phone_number(renamed_json_path)
     address = extract_address(renamed_json_path)
 
-    print(f"Extracted Full Name: {full_name}")
     print(f"Extracted Dollar Amount: {dollar_amount}")
     print(f"Extracted Phone Number: {phone_number}")
-    print(f"Extracted Address: {address}")
 
     return full_name, dollar_amount, phone_number, address
 
@@ -277,10 +275,8 @@ async def scrape_table(page, headers):
         cell_values[0] = f"{doc_id}.pdf"
 
         contact_name, dollar, phone, address = await process_pdf(docid=doc_id)
-        cell_values.append(contact_name)
         cell_values.append(dollar)
         cell_values.append(phone)
-        cell_values.append(address)
 
         save_to_csv([cell_values], headers=headers, append=True)
         await asyncio.sleep(2)
