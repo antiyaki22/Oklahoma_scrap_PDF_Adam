@@ -216,7 +216,7 @@ async def download_pdf(page, key: str, docid: str):
 
     if response.ok:
         pdf_content = await response.body()
-        pdf_path = os.path.join(download_path, f"{docid}_watermark.pdf")
+        pdf_path = os.path.join(download_path, f"{docid}.pdf")
         
         with open(pdf_path, 'wb') as pdf_file:
             pdf_file.write(pdf_content)     
@@ -255,7 +255,7 @@ def remove_watermark(wm_text, inputFile, outputFile):
             output.write(outputStream)
 
 async def process_pdf(docid: str) -> tuple:
-    input_pdf_path = f"downloads/{docid}.pdf"
+    input_pdf_path = f"temp.pdf"
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
     ExtractTextInfoFromPDF(input_pdf_path)
     
@@ -300,7 +300,7 @@ async def scrape_table(page, headers):
             print("Document not found!")
 
         await download_pdf(page, key=instrument_number, docid=doc_id)
-        remove_watermark("UNOFFICIAL", f"downloads/{doc_id}_watermark.pdf", f"downloads/{doc_id}.pdf")
+        remove_watermark("UNOFFICIAL", f"downloads/{doc_id}.pdf", f"temp_{doc_id}.pdf")
         cell_values[0] = f"{doc_id}.pdf"
 
         contact_name, dollar, phone, address = await process_pdf(docid=doc_id)
