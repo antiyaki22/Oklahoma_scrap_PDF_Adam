@@ -300,7 +300,19 @@ async def scrape_table(page, headers):
             print("Document not found!")
 
         await download_pdf(page, key=instrument_number, docid=doc_id)
-        remove_watermark("UNOFFICIAL", f"downloads/{doc_id}.pdf", f"downloads/{doc_id}.pdf")
+
+        input_path = f"downloads/{doc_id}.pdf"
+        temp_output_path = f"downloads/{doc_id}_no_watermark.pdf"
+
+        remove_watermark("UNOFFICIAL", input_path, temp_output_path)
+
+        if os.path.exists(temp_output_path):
+            os.remove(input_path) 
+            os.rename(temp_output_path, input_path) 
+            print(f"Successfully replaced {input_path} with watermark-free version.")
+        else:
+            print("Error: Watermark removal failed, new file not created.")
+
         cell_values[0] = f"{doc_id}.pdf"
 
         contact_name, dollar, phone, address = await process_pdf(docid=doc_id)
