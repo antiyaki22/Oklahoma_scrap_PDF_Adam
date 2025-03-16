@@ -394,6 +394,8 @@ async def scrape_table(page, headers):
         cell_values.append(info["City"])
         cell_values.append(info["State"])
         cell_values.append(info["Zipcode"])
+        cell_values.append(info["Dollar"])
+        cell_values.append(info("Phone"))
 
         save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
