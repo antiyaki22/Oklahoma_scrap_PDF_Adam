@@ -345,9 +345,7 @@ async def process_pdf(docid: str) -> tuple:
     info["Dollar"] = dollar_amount
     info["Phone"] = phone_number
 
-    print(f"Extracted Dollar Amount: {dollar_amount}")
-    print(f"Extracted Phone Number: {phone_number}")
-
+    print (f"info: {info}")
     return info
 
 async def scrape_table(page, headers):
