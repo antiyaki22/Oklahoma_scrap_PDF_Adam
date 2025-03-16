@@ -395,7 +395,7 @@ async def scrape_table(page, headers):
         cell_values.append(info["State"])
         cell_values.append(info["Zipcode"])
 
-        save_to_csv([cell_values], headers=headers, append=True)
+        save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
 
 def save_to_csv(data, headers, append=True):
@@ -404,7 +404,7 @@ def save_to_csv(data, headers, append=True):
     with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
 
-        if not file_exists:
+        if headers:
             writer.writerow(headers)
         
         if data:
