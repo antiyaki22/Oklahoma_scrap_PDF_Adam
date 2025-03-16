@@ -406,8 +406,9 @@ def save_to_csv(data, headers, append=True):
 
         if not file_exists:
             writer.writerow(headers)
-
-        writer.writerows(data)
+        
+        if data:
+            writer.writerows(data)
 
 async def main():    
     clear_csv_file()
