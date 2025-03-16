@@ -177,6 +177,63 @@ def extract_address(json_file_path):
 
     return "No valid address found"  
 
+def extract_info_from_json(json_file_path):
+    """Extracts claimant, contractor, owner, address, city, state, and zipcode from a JSON file."""
+    nlp = spacy.load("en_core_web_sm")
+    
+    def extract_company_and_address(text, keyword):
+        match = re.search(rf'(.+?)\s+{keyword}', text, re.IGNORECASE)
+        if match:
+            company_info = match.group(1).strip()
+            return detect_address_parts(company_info), company_info
+        return None, None
+    
+    def detect_address_parts(text):
+        doc = nlp(text)
+        address, city, state, zipcode = None, None, None, None
+        
+        for ent in doc.ents:
+            if ent.label_ in ["FAC", "LOC", "GPE"]:
+                address = ent.text if not address else address + ", " + ent.text
+            if ent.label_ == "GPE" and not city:
+                city = ent.text
+            if re.match(r'^[A-Z]{2}$', ent.text):
+                state = ent.text
+            if re.match(r'\d{5}(-\d{4})?$', ent.text):
+                zipcode = ent.text
+        
+        return address, city, state, zipcode
+    
+    with open(json_file_path, "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+    
+    claimant, claimant_address = None, (None, None, None, None)
+    contractor, contractor_address = None, (None, None, None, None)
+    owner, owner_address = None, (None, None, None, None)
+    
+    for element in json_data.get("elements", []):
+        text = element.get("Text", "")
+        
+        if "claims" in text:
+            claimant_address, claimant = extract_company_and_address(text, "claims")
+        if "against" in text:
+            contractor_address, contractor = extract_company_and_address(text, "against")
+        if "owns" in text or "owner" in text:
+            owner_address, owner = extract_company_and_address(text, "owns|owner")
+    
+    if not owner:
+        owner, owner_address = contractor, contractor_address
+    
+    return {
+        "Claimant": claimant,
+        "Contractor": contractor,
+        "Owner": owner,
+        "Address": owner_address[0],
+        "City": owner_address[1],
+        "State": owner_address[2],
+        "Zipcode": owner_address[3]
+    }
+
 def unzip_file(zip_file_path, output_folder):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(output_folder)
@@ -187,14 +244,23 @@ def remove_zip_file(zip_file_path):
     except Exception as e:
         print(f"Error removing zip file: {e}")
 
-async def get_table_headers(page) -> list:
-    headers = await page.query_selector_all(TABLE_HEADER_SELECTOR)
-    header_titles = [await header.text_content() or "N/A" for header in headers]
-    header_titles[0] = "PDF"
-    header_titles.append("Contact Name")
+async def set_table_headers(page) -> list:
+    header_titles = []
+    header_titles.append("File")
+    header_titles.append("Instrument Number")
+    header_titles.append("Type")
+    header_titles.append("Date Recorded")
+    header_titles.append("Book")
+    header_titles.append("Page")
+    header_titles.append("Claimant")
+    header_titles.append("Contractor")
+    header_titles.append("Owner")
+    header_titles.append("Property Address")
+    header_titles.append("Property City")
+    header_titles.append("Property State")
+    header_titles.append("Property Zip")
     header_titles.append("Dollar Amount")
     header_titles.append("Phone Number")
-    header_titles.append("Address")
     return header_titles
 
 async def download_pdf(page, key: str, docid: str):
@@ -271,15 +337,16 @@ async def process_pdf(docid: str) -> tuple:
 
     os.rename(json_file_path, renamed_json_path)    
 
+    info = extract_info_from_json(renamed_json_path)
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
-    full_name = extract_full_name(renamed_json_path)
     phone_number = extract_phone_number(renamed_json_path)
-    address = extract_address(renamed_json_path)
+    info["Dollar"] = dollar_amount
+    info["Phone"] = phone_number
 
     print(f"Extracted Dollar Amount: {dollar_amount}")
     print(f"Extracted Phone Number: {phone_number}")
 
-    return full_name, dollar_amount, phone_number, address
+    return info
 
 async def scrape_table(page, headers):
     rows = await page.query_selector_all(TABLE_ROW_SELECTOR)
@@ -315,9 +382,16 @@ async def scrape_table(page, headers):
 
         cell_values[0] = f"{doc_id}.pdf"
 
-        contact_name, dollar, phone, address = await process_pdf(docid=doc_id)
-        cell_values.append(dollar)
-        cell_values.append(phone)
+        info = await process_pdf(docid=doc_id)
+        if not cell_values[6]:
+            cell_values[6] = info["Claimant"]
+        if not cell_values[7]:
+            cell_values[7] = info["Contractor"]
+        cell_values[8] = info["Owner"]
+        cell_values[9] = info["Address"]
+        cell_values.append(info["City"])
+        cell_values.append(info["State"])
+        cell_values.append(info["Zipcode"])
 
         save_to_csv([cell_values], headers=headers, append=True)
         await asyncio.sleep(2)
@@ -410,7 +484,8 @@ async def main():
         num_pages_element = page.locator('#rod_type_table_row > div > div div.rod-pages:first-of-type label.rodMxPgLbl')
         num_pages = await num_pages_element.text_content()
 
-        headers = await get_table_headers(page)
+        headers = await set_table_headers(page)
+        save_to_csv(data=None, headers=headers, append=True)
 
         for i in range(int(num_pages)):
             await scrape_table(page, headers=headers)
