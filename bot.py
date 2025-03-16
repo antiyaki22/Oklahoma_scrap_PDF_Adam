@@ -123,7 +123,9 @@ def extract_phone_number(json_file_path):
         data = json.load(file)
 
     patterns = [
-        r"\(\d{3}\)\s?\d{3}[-.\s]?\d{4}",  
+        r"\(\d{3}\)\s\d{3}[-\s]?\d{4}",  
+        r"\(\d{3}\)-\d{3}-\d{4}",        
+        r"\d{3}-\d{3}-\d{4}"             
     ]
 
     all_numbers = []
@@ -134,7 +136,7 @@ def extract_phone_number(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(0)
+                return match.group(0)  
 
         number_matches = re.findall(r"\d{10,}", text)  
         all_numbers.extend(number_matches)
@@ -144,7 +146,7 @@ def extract_phone_number(json_file_path):
     ]
 
     if formatted_numbers:
-        return max(formatted_numbers, key=len)
+        return max(formatted_numbers, key=len)  
 
     return "No valid phone number found"
 
