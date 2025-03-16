@@ -185,10 +185,10 @@ def extract_info_from_json(json_file_path):
     
     def extract_company_and_address(text, keyword):
         match = re.search(rf'(.+?)\s+{keyword}', text, re.IGNORECASE)
-        if match:
+        if match and match.group(1):  # Ensure match is found and not empty
             company_info = match.group(1).strip()
             return detect_address_parts(company_info), company_info
-        return None, None
+        return (None, None, None, None), None  # Ensure consistent return format
     
     def detect_address_parts(text):
         doc = nlp(text)
@@ -217,11 +217,11 @@ def extract_info_from_json(json_file_path):
         text = element.get("Text", "")
         
         if "claims" in text:
-            claimant_address, claimant = extract_company_and_address(text, "claims")
+            claimant_address, claimant = extract_company_and_address(text, "claims") or (None, (None, None, None, None))
         if "against" in text:
-            contractor_address, contractor = extract_company_and_address(text, "against")
+            contractor_address, contractor = extract_company_and_address(text, "against") or (None, (None, None, None, None))
         if "owns" in text or "owner" in text:
-            owner_address, owner = extract_company_and_address(text, "owns|owner")
+            owner_address, owner = extract_company_and_address(text, "owns|owner") or (None, (None, None, None, None))
     
     if not owner:
         owner, owner_address = contractor, contractor_address
