@@ -210,11 +210,9 @@ def extract_info_from_json(json_file_path):
             if not text:
                 return None, None, None, None
 
-            # Fix cases where "owned by" is directly followed by a name with no space
             text = re.sub(r'(\bowned by)([A-Z])', r'\1 \2', text)
             text = clean_text(text)
 
-            # Standard address pattern: Street, City, State, Zip
             address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy)?)\s*,?\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
             match = re.search(address_pattern, text)
@@ -244,7 +242,6 @@ def extract_info_from_json(json_file_path):
 
             text = clean_text(text)
 
-            # Fix case where "owned by" is stuck to a name with no space
             text = re.sub(r'owned by([A-Z])', r'owned by \1', text)
 
             if "claim" in text.lower() and not claimant:
