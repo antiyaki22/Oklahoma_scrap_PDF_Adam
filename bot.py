@@ -244,13 +244,12 @@ def extract_info_from_json(json_file_path):
     def handle_address_split(elements, idx):
         """ Helper function to handle cases where an address is split across blocks """
         address_parts = []
-        for surrounding_idx in [idx - 1, idx + 1]:  # Check neighboring blocks
+        for surrounding_idx in [idx - 1, idx + 1]: 
             if 0 <= surrounding_idx < len(elements):
                 surrounding_text = elements[surrounding_idx].get("Text", "")
                 if surrounding_text:
                     address_parts.append(surrounding_text.strip())
         
-        # Join all parts of the address and attempt to extract it
         full_address = " ".join(address_parts)
         return extract_address(full_address)
 
