@@ -241,18 +241,6 @@ def extract_info_from_json(json_file_path):
 
         return None, None, None, None
 
-    def handle_address_split(elements, idx):
-        """ Helper function to handle cases where an address is split across blocks """
-        address_parts = []
-        for surrounding_idx in [idx - 1, idx + 1]: 
-            if 0 <= surrounding_idx < len(elements):
-                surrounding_text = elements[surrounding_idx].get("Text", "")
-                if surrounding_text:
-                    address_parts.append(surrounding_text.strip())
-        
-        full_address = " ".join(address_parts)
-        return extract_address(full_address)
-
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
