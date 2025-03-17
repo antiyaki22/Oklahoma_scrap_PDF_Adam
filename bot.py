@@ -188,17 +188,9 @@ def extract_info_from_json(json_file_path):
 
     def extract_address(text):
         """Extracts a street address, city, state, and ZIP code from text."""
-        try:
-            if not text:
-                return None, None, None, None
-            text = clean_text(text)
-            address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-            match = re.search(address_pattern, text)
-            if match:
-                return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
-        except Exception as e:
-            print(f"Error extracting address: {e}")
-        return None, None, None, None
+        address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+        match = re.search(address_pattern, text)
+        return (match.group(1), match.group(2), match.group(3), match.group(4)) if match else (None, None, None, None)
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
@@ -212,36 +204,41 @@ def extract_info_from_json(json_file_path):
 
     try:
         for element in json_data.get("elements", []):
-            text = element.get("Text", "")
+            text = clean_text(element.get("Text", ""))
             if not text:
                 continue  
 
-            text = clean_text(text)
-
-            # Extract claimant (before "claims")
+            # Extract claimant (before "claim", remove anything after first comma)
             if "claim" in text.lower() and not claimant:
                 claimant_match = re.search(r'([\w\s]+,?\s*Inc)', text, re.IGNORECASE)
                 if claimant_match:
                     claimant = claimant_match.group(1).strip()
 
-            # Extract claimant address
+            # Extract claimant address (right after claimant name)
             if claimant and not any(claimant_address):
                 claimant_address = extract_address(text)
 
-            # Extract contractor (after "claims against")
-            contractor_match = re.search(r'claims\s+against\s*([\w\s]+?),', text, re.IGNORECASE)
-            if contractor_match and not contractor:
-                contractor = contractor_match.group(1).strip()
+            # Extract contractor (after "against", handling variations like "againstDLP")
+            if "against" in text.lower() and not contractor:
+                contractor_match = re.search(r'against\s*(?:DLP\s*)?([\w\s]+?),', text, re.IGNORECASE)
+                if contractor_match:
+                    contractor = contractor_match.group(1).strip()
 
-            # Extract contractor address
+            # Extract contractor address (appears after contractor name)
             if contractor and not any(contractor_address):
                 contractor_address = extract_address(text)
 
-            # Extract owner (after "owned by")
-            owner_match = re.search(r'owned by\s*([\w\s,.&-]+?)\s*,\s*([\d\w\s,.-]+)', text, re.IGNORECASE)
-            if owner_match:
-                owner = owner_match.group(1).strip()
-                owner_address = extract_address(owner_match.group(2))  # Extract address after owner name
+            # Extract owner (after "owned by" or "owns")
+            if "owned by" in text.lower() and not owner:
+                owner_match = re.search(r'owned by\s*([\w\s,\.]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
+                if owner_match:
+                    owner = owner_match.group(1).strip()
+
+            # Extract owner address (directly after "owned by")
+            if owner and not any(owner_address):
+                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                if owner_address_match:
+                    owner_address = extract_address(owner_address_match.group(1))
 
     except Exception as e:
         print(f"Error processing elements: {e}")
