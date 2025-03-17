@@ -256,25 +256,17 @@ def extract_info_from_json(json_file_path):
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
 
-            # Extract owner address (appears after owner name)
-            if owner and not any(owner_address):
-                owner_address = extract_address(text)
+            # Extract owner address (only after "owned by"!!!)
+            if owner:
+                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                if owner_address_match:
+                    owner_address = extract_address(owner_address_match.group(1))
 
     except Exception as e:
         print(f"Error processing elements: {e}")
 
-    # Ensure owner gets the correct address (not the claimant’s)
-    if not any(owner_address) and owner:
-        owner_address_match = re.search(rf'{re.escape(owner)}\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
-        if owner_address_match:
-            owner_address = extract_address(owner_address_match.group(1))
-
-    # Fallback logic for missing owner
-    if not owner:
-        owner = contractor if contractor else "Not Found"
-    
     # If owner's address is still not found, use contractor's address as a fallback
-    if not any(owner_address):
+    if not any(owner_address) and any(contractor_address):
         owner_address = contractor_address
 
     return {
@@ -435,11 +427,11 @@ async def scrape_table(page, headers):
         print (f"cell values 0: ", cell_values)
 
         info = await process_pdf(docid=doc_id)
-        if not cell_values[6]:
+        if cell_values[6] == "N/A":
             cell_values[6] = info["Claimant"]
-        if not cell_values[7]:
+        if cell_values[7] == "N/A":
             cell_values[7] = info["Contractor"]
-        if not cell_values[8]:
+        if cell_values[8] == "N/A":
             cell_values[8] = info["Owner"]
         cell_values[9] = info["Address"]
         cell_values.append(info["City"])
