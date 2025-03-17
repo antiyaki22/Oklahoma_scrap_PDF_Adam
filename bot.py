@@ -390,7 +390,7 @@ async def scrape_table(page, headers):
 
     for row in rows:
         cells = await row.query_selector_all(TABLE_CELL_SELECTOR)
-        cell_values = [await cell.text_content().strip() or "N/A" for cell in cells]
+        cell_values = [((await cell.text_content()) or "").strip() or "N/A" for cell in cells]
 
         pdf_html_element = await cells[0].query_selector("div > button:first-of-type")
         pdf_html = await pdf_html_element.evaluate("element => element.outerHTML")
