@@ -181,49 +181,46 @@ def extract_address(json_file_path):
 
 def extract_info_from_json(json_file_path):
     """Extracts claimant, contractor, owner, and owner's address details from a JSON file."""
-    
-    def extract_company_name(text, keyword):
-        """Extracts only the company name before a given keyword."""
-        match = re.search(rf'(.+?)\s+{keyword}', text, re.IGNORECASE)
+
+    def extract_company_name(text, keyword, after=False):
+        """Extracts company name before or after a keyword."""
+        match = re.search(rf'(.+?)\s+{keyword}' if not after else rf'{keyword}\s+(.+)', text, re.IGNORECASE)
         if match:
-            company_name = match.group(1)
-            if company_name:
-                company_name = company_name.strip()
-                company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  
-                return company_name
+            company_name = match.group(1).strip()
+            company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  
+            return company_name
         return None
 
     def extract_address(text):
-        """Extracts address, city, state, and zip code from text using regex."""
+        """Extracts address, city, state, and zip code using regex."""
         address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
         match = re.search(address_pattern, text)
         if match:
             return (
-                match.group(1), 
+                match.group(1),  
                 match.group(2),  
                 match.group(3),  
-                match.group(4) if match.group(4) else None 
+                match.group(4) if match.group(4) else None  
             )
         return None, None, None, None
 
     with open(json_file_path, "r", encoding="utf-8") as f:
         json_data = json.load(f)
-    
+
     claimant, contractor, owner = None, None, None
     claimant_address, owner_address = (None, None, None, None), (None, None, None, None)
 
     for element in json_data.get("elements", []):
         text = element.get("Text", "")
 
-        if "claims" in text and not claimant:
-            claimant = extract_company_name(text, "claims")
-            claimant_address = extract_address(text) if not any(claimant_address) else claimant_address
+        if "claim" in text and not claimant:
+            claimant = extract_company_name(text, "claim")
 
-        if ("against" in text or "upon" in text) and not contractor:
-            contractor = extract_company_name(text, "against|upon")
+        if "against" in text and not contractor:
+            contractor = extract_company_name(text, "against", after=True)
 
-        if ("owns" in text or "owner" in text) and not owner:
-            owner = extract_company_name(text, "owns|owner")
+        if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
+            owner = extract_company_name(text, r'owns|owner', after=True)
             owner_address = extract_address(text)
 
     if not owner:
