@@ -190,7 +190,7 @@ def extract_info_from_json(json_file_path):
             pattern = rf'(\b.+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b.+?\b)'
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(1).strip()
+                return match.group(1).strip().rstrip(',')
         except Exception as e:
             print(f"Error extracting company name for keyword '{keyword}': {e}")
         return None
@@ -228,13 +228,19 @@ def extract_info_from_json(json_file_path):
                 claimant_text = extract_company_name(text, "claim")
                 if claimant_text:
                     claimant = claimant_text.split(",")[0].strip()  
+                    if "Inc" in text:
+                        claimant += ", Inc"
 
-            match = re.search(r'against\s*(\S*\s+.+?)\s*,', text, re.IGNORECASE)
+            match = re.search(r'against\s*([\w\s]+?)(?=,| for|$)', text, re.IGNORECASE)
             if match and not contractor:
                 contractor = match.group(1).strip()
+                contractor = contractor.replace("DLP", "").strip() 
 
-            if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
-                owner = extract_company_name(text, r'owns|owner', after=True)
+            owner_match = re.search(r'owns\s*(.+?)\s*,', text, re.IGNORECASE)
+            if owner_match and not owner:
+                owner = owner_match.group(1).strip()
+            
+            if owner and not any(owner_address):
                 owner_address = extract_address(text)
 
     except Exception as e:
@@ -405,11 +411,12 @@ async def scrape_table(page, headers):
             print("Error: Watermark removal failed, new file not created.")
 
         cell_values[0] = f"{doc_id}.pdf"
+        print (f"cell values 0: ", cell_values)
 
         info = await process_pdf(docid=doc_id)
-        if not cell_values[6]:
+        if cell_values[6] is '':
             cell_values[6] = info["Claimant"]
-        if not cell_values[7]:
+        if cell_values[7] is '':
             cell_values[7] = info["Contractor"]
         cell_values[8] = info["Owner"]
         cell_values[9] = info["Address"]
@@ -418,6 +425,7 @@ async def scrape_table(page, headers):
         cell_values.append(info["Zipcode"])
         cell_values.append(info["Dollar"])
         cell_values.append(info["Phone"])
+        print (f"cell values 1: ", cell_values)
 
         save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
