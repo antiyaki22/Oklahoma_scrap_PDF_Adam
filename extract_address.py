@@ -11,7 +11,6 @@ def extract_address(text):
         
         text = clean_text(text)
 
-        # More flexible pattern to locate addresses anywhere in the text
         address_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
         match = re.search(address_pattern, text)
