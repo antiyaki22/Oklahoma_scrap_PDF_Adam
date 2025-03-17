@@ -77,8 +77,9 @@ def extract_dollar_amount(json_file_path):
     ]
 
     all_amounts = []
-
-    for element in data.get("elements", []):
+    elements = data.get("elements", [])
+    
+    for i, element in enumerate(elements):
         text = element.get("Text", "")
 
         for pattern in patterns:
@@ -86,8 +87,16 @@ def extract_dollar_amount(json_file_path):
             if match:
                 return match.group(1)
 
-        dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{1,2})", text)  
+        dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{1,2})", text)
         all_amounts.extend(dollar_matches)
+
+        if "Principal amount of claim:" in text:
+            for j in range(1, 3):
+                if i + j < len(elements):
+                    next_text = elements[i + j].get("Text", "")
+                    next_dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{1,2})", next_text)
+                    if next_dollar_matches:
+                        return next_dollar_matches[0] 
 
     if all_amounts:
         return max(all_amounts, key=lambda x: float(x.replace(",", "")))
