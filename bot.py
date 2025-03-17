@@ -305,7 +305,53 @@ def extract_info_from_json(json_file_path):
                                 owner_address = extracted_address
                                 break  # Stop once address is found
 
-        # Ensure we find the name and address in surrounding blocks if not found in the immediate next blocks
+        if not claimant or not contractor or not owner:
+            for idx, element in enumerate(elements):
+                text = element.get("Text", "")
+                if not text:
+                    continue
+
+                text = clean_text(text)
+                if not claimant:
+                    claimant = extract_company_name(text, 'claim')  
+                if not contractor:
+                    contractor = extract_company_name(text, 'against') 
+                if not owner:
+                    owner = extract_company_name(text, 'owned by')  
+
+                for prev_idx in range(idx - 1, idx - 4, -1):  
+                    if 0 <= prev_idx < len(elements):
+                        prev_element = elements[prev_idx]
+                        prev_text = prev_element.get("Text", "")
+                        prev_text = clean_text(prev_text)
+                        if not claimant:
+                            claimant = extract_company_name(prev_text, 'claim')
+                        if not contractor:
+                            contractor = extract_company_name(prev_text, 'against')
+                        if not owner:
+                            owner = extract_company_name(prev_text, 'owned by')
+
+                for next_idx in range(idx + 1, idx + 4):
+                    if 0 <= next_idx < len(elements):
+                        next_element = elements[next_idx]
+                        next_text = next_element.get("Text", "")
+                        next_text = clean_text(next_text)
+                        if not claimant:
+                            claimant = extract_company_name(next_text, 'claim')
+                        if not contractor:
+                            contractor = extract_company_name(next_text, 'against')
+                        if not owner:
+                            owner = extract_company_name(next_text, 'owned by')
+
+                if owner and not any(owner_address):
+                    for surrounding_idx in [idx - 1, idx + 1]:  
+                        if 0 <= surrounding_idx < len(elements):
+                            surrounding_text = elements[surrounding_idx].get("Text", "")
+                            if surrounding_text:
+                                owner_address = extract_address(surrounding_text)
+                                if any(owner_address):
+                                    break
+
         if not any(owner_address):
             for idx, element in enumerate(elements):
                 text = element.get("Text", "")
@@ -328,6 +374,7 @@ def extract_info_from_json(json_file_path):
     if not any(owner_address):
         owner_address = claimant_address
 
+    print (f"owner address 0: {owner_address}")
     if not any(owner_address):
         for element in elements:
             text = element.get("Text", "")
@@ -336,6 +383,7 @@ def extract_info_from_json(json_file_path):
                 if any(extracted_address):
                     owner_address = extracted_address
                     break
+    print (f"owner address 1: {owner_address}")
 
     return {
         "Claimant": claimant if claimant else "Not Found",
