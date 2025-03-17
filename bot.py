@@ -190,9 +190,11 @@ def extract_address(json_file_path):
 
 def extract_info_from_json(json_file_path):
     def clean_text(text):
+        """Cleans non-ASCII characters and trims spaces."""
         return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
 
     def extract_company_name(text, keyword, after=False):
+        """Extracts company name based on the keyword, can extract before or after the keyword."""
         try:
             if not text:
                 return None
@@ -201,50 +203,47 @@ def extract_info_from_json(json_file_path):
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 return match.group(1).strip().rstrip(',')
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error in extract_company_name: {e}")
         return None
 
     def extract_address(text):
+        """Extracts address information from the provided text."""
         try:
             if not text:
                 return None, None, None, None
 
-            text = re.sub(r'(\bowned\s*by)([A-Z])', r'\1 \2', text)
+            text = re.sub(r'(\bowned\s*by)([A-Z])', r'\1 \2', text)  # Ensure proper spacing
             text = clean_text(text)
 
+            # Main address pattern (Street, City, State, ZipCode)
             address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
-
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
-            
+
+            # Alternative address format (from "owned by")
             owner_address_match = re.search(r'owned\s*by\s*[\w\s&.,-]+,\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
             if owner_address_match:
                 return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
-            
+
+            # Flexible address matching for street, city, state, zip code
             flexible_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             matches = re.findall(flexible_pattern, text)
-
             if matches:
                 for match in matches:
-                    street = match[0]
-                    city = match[2]
-                    state = match[3]
-                    zip_code = match[4] if match[4] else None
-                    
+                    street, city, state, zip_code = match[0], match[2], match[3], match[4] if match[4] else None
                     if city and state:
                         return street, city.strip(), state, zip_code
-
-        except Exception:
-            pass
-
+        except Exception as e:
+            print(f"Error in extract_address: {e}")
         return None, None, None, None
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
-    except Exception:
+    except Exception as e:
+        print(f"Error reading JSON file: {e}")
         return {}
 
     claimant, contractor, owner = None, None, None
@@ -255,10 +254,9 @@ def extract_info_from_json(json_file_path):
         for idx, element in enumerate(elements):
             text = element.get("Text", "")
             if not text:
-                continue  
+                continue
 
             text = clean_text(text)
-
             text = re.sub(r'owned by([A-Z])', r'owned by \1', text)
 
             if "claim" in text.lower() and not claimant:
@@ -308,22 +306,22 @@ def extract_info_from_json(json_file_path):
             if "Owners:" in text:
                 found_owner_section = False
 
-                for next_idx in range(idx + 1, idx + 5): 
+                for next_idx in range(idx + 1, idx + 5):  
                     if 0 <= next_idx < len(elements):
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
                         next_text = clean_text(next_text)
 
-                        if not owner and next_text: 
+                        if not owner and next_text:
                             owner = next_text
                             found_owner_section = True
-                            continue  
+                            continue
 
-                        if owner and found_owner_section and not any(owner_address):  
+                        if owner and found_owner_section and not any(owner_address):
                             extracted_address = extract_address(next_text)
                             if any(extracted_address):
                                 owner_address = extracted_address
-                                break 
+                                break
 
         if not claimant or not contractor or not owner:
             for idx, element in enumerate(elements):
@@ -333,11 +331,11 @@ def extract_info_from_json(json_file_path):
 
                 text = clean_text(text)
                 if not claimant:
-                    claimant = extract_company_name(text, 'claim')  
+                    claimant = extract_company_name(text, 'claim')
                 if not contractor:
-                    contractor = extract_company_name(text, 'against') 
+                    contractor = extract_company_name(text, 'against')
                 if not owner:
-                    owner = extract_company_name(text, 'owned by')  
+                    owner = extract_company_name(text, 'owned by')
 
                 for prev_idx in range(idx - 1, idx - 4, -1):  
                     if 0 <= prev_idx < len(elements):
@@ -351,7 +349,7 @@ def extract_info_from_json(json_file_path):
                         if not owner:
                             owner = extract_company_name(prev_text, 'owned by')
 
-                for next_idx in range(idx + 1, idx + 4):
+                for next_idx in range(idx + 1, idx + 4): 
                     if 0 <= next_idx < len(elements):
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
@@ -373,35 +371,21 @@ def extract_info_from_json(json_file_path):
                                     break
 
         if not any(owner_address):
-            for idx, element in enumerate(elements):
+            owner_address = contractor_address
+        if not any(owner_address):
+            owner_address = claimant_address
+        if not any(owner_address):
+            for element in elements:
                 text = element.get("Text", "")
-                if text and re.search(r'\b(owner|owners|owned by|ownedby)\b', clean_text(text), re.IGNORECASE):  
-                    for next_idx in range(idx + 1, len(elements)):  
-                        next_element = elements[next_idx]
-                        next_text = next_element.get("Text", "")
-                        if next_text:
-                            extracted_address = extract_address(next_text)
-                            if any(extracted_address):  
-                                owner_address = extracted_address
-                                break  
+                if text:
+                    extracted_address = extract_address(clean_text(text))
+                    if any(extracted_address):
+                        owner_address = extracted_address
+                        break
 
-    except Exception:
-        pass
-
-    if not any(owner_address):
-        owner_address = contractor_address
-
-    if not any(owner_address):
-        owner_address = claimant_address
-
-    if not any(owner_address):
-        for element in elements:
-            text = element.get("Text", "")
-            if text:
-                extracted_address = extract_address(clean_text(text))
-                if any(extracted_address):
-                    owner_address = extracted_address
-                    break
+    except Exception as e:
+        print(f"Error during extraction: {e}")
+        return {}
 
     return {
         "Claimant": claimant if claimant else "Not Found",
