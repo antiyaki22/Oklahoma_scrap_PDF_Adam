@@ -260,6 +260,42 @@ def extract_info_from_json(json_file_path):
                 if owner_address_match:
                     owner_address = extract_address(owner_address_match.group(1))
 
+        # New logic to handle special formats for Claimant, Contractor, and Owner:
+
+        for idx, element in enumerate(elements):
+            text = element.get("Text", "")
+            if not text:
+                continue
+
+            text = clean_text(text)
+
+            # Check if "Lien Claimant:" exists in the text and extract company name
+            if "Lien Claimant:" in text and not claimant:
+                claimant_match = re.search(r'Lien Claimant:\s*([\w\s&.,-]+)', text, re.IGNORECASE)
+                if claimant_match:
+                    claimant = claimant_match.group(1).strip()
+
+            # Check if "Customer:" exists in the text and extract company name (for contractor)
+            if "Customer:" in text and not contractor:
+                for next_idx in range(idx + 1, idx + 2):  # Look 1 block ahead for contractor name
+                    if 0 <= next_idx < len(elements):
+                        next_element = elements[next_idx]
+                        next_text = next_element.get("Text", "")
+                        if next_text:
+                            contractor = clean_text(next_text)
+
+            # Check if "Owners:" exists in the text and extract owner and owner address
+            if "Owners:" in text:
+                for next_idx in range(idx + 1, idx + 5):  # Look up to 4 blocks ahead
+                    if 0 <= next_idx < len(elements):
+                        next_element = elements[next_idx]
+                        next_text = next_element.get("Text", "")
+                        next_text = clean_text(next_text)
+                        if not owner and next_text:
+                            owner = next_text
+                        if owner and not any(owner_address):
+                            owner_address = extract_address(next_text)
+
         # If no information found in the current block, check neighboring blocks
         if not claimant or not contractor or not owner:
             for idx, element in enumerate(elements):
