@@ -278,7 +278,7 @@ def extract_info_from_json(json_file_path):
                 owner = owner_match.group(1).strip()
 
             if owner:
-                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                owner_address_match = re.search(r'owned\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
                 if owner_address_match:
                     owner_address = extract_address(owner_address_match.group(1))
 
