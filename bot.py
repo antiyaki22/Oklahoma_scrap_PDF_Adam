@@ -180,18 +180,18 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, ensuring accuracy."""
+    """Extracts claimant, contractor, owner, and their respective address details accurately from a JSON file."""
 
     def clean_text(text):
-        """Removes non-ASCII characters from text."""
-        return re.sub(r'[^\x00-\x7F]+', '', text)
+        """Removes non-ASCII characters and extra spaces from text."""
+        return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
     def extract_company_name(text, keyword, after=False):
         """Extracts company name before or after a keyword."""
         try:
             if not text:
                 return None
-            text = clean_text(text)  # Remove weird characters
+            text = clean_text(text)  
             pattern = rf'(\b.+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b.+?\b)'
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
@@ -201,20 +201,15 @@ def extract_info_from_json(json_file_path):
         return None
 
     def extract_address(text):
-        """Extracts address details from text and ensures it stops at a valid address."""
+        """Extracts a street address, city, state, and ZIP code from text."""
         try:
             if not text:
                 return None, None, None, None
-            text = clean_text(text)  # Remove weird characters
-
-            # The pattern for valid address formats (e.g., street address, city, state, zip)
-            address_pattern = r'(\d+\s[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            text = clean_text(text)  
+            address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
-            else:
-                # If address not found, return empty
-                return None, None, None, None
         except Exception as e:
             print(f"Error extracting address: {e}")
         return None, None, None, None
@@ -235,43 +230,42 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            text = clean_text(text)  # Remove weird characters globally
+            text = clean_text(text)  # Remove non-ASCII characters globally
 
             # Extract claimant (before "claim", remove anything after first comma)
             if "claim" in text.lower() and not claimant:
-                claimant_text = extract_company_name(text, "claim")
-                if claimant_text:
-                    claimant = claimant_text.split(",")[0].strip()  
-                    if "Inc" in text:
-                        claimant += ", Inc"
+                claimant_match = re.search(r'([\w\s]+,?\s*Inc)', text, re.IGNORECASE)
+                if claimant_match:
+                    claimant = claimant_match.group(1).strip()
 
-            # Extract contractor (after "against", handle miswritten variations)
-            match = re.search(r'against\s*([\w\s]+?)(?=,| for|$)', text, re.IGNORECASE)
-            if match and not contractor:
-                contractor = match.group(1).strip()
-                contractor = contractor.replace("DLP", "").strip()  # Remove "DLP" if it appears
-                contractor_address = extract_address(text)  # Get contractor's address
+            # Extract contractor (after "against", handle miswritten variations like "againstDLP")
+            contractor_match = re.search(r'against\s*(?:DLP\s*)?([\w\s]+?),', text, re.IGNORECASE)
+            if contractor_match and not contractor:
+                contractor = contractor_match.group(1).strip()
 
-            # Extract owner (after "owned by", handle company name and address)
-            owner_match = re.search(r'owned by\s*([\w\s,]+?)(?=,)', text, re.IGNORECASE)
+            # Extract owner (after "owned by" or "owns")
+            owner_match = re.search(r'owned by\s*([\w\s,\.]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
+
+            # Extract contractor address (appears after contractor name)
+            if contractor and not any(contractor_address):
+                contractor_address = extract_address(text)
+
+            # Extract owner address (appears after owner name)
+            if owner and not any(owner_address):
                 owner_address = extract_address(text)
 
     except Exception as e:
         print(f"Error processing elements: {e}")
 
-    try:
-        # Fallback: If owner is missing, set to contractor
-        if not owner:
-            owner = contractor if contractor else "Not Found"
-
-        # Fallback: If owner's address is missing, set to contractor's address
-        if not any(owner_address):  
-            owner_address = contractor_address
-
-    except Exception as e:
-        print(f"Error in fallback logic: {e}")
+    # Fallback logic for missing owner
+    if not owner:
+        owner = contractor if contractor else "Not Found"
+    
+    # If owner's address is not found, use contractor's address as a fallback
+    if not any(owner_address):
+        owner_address = contractor_address
 
     return {
         "Claimant": claimant if claimant else "Not Found",
@@ -431,11 +425,11 @@ async def scrape_table(page, headers):
         print (f"cell values 0: ", cell_values)
 
         info = await process_pdf(docid=doc_id)
-        if cell_values[6] == '':
+        if not cell_values[6]:
             cell_values[6] = info["Claimant"]
-        if cell_values[7] == '':
+        if not cell_values[7]:
             cell_values[7] = info["Contractor"]
-        if cell_values[8] == '':
+        if not cell_values[8]:
             cell_values[8] = info["Owner"]
         cell_values[9] = info["Address"]
         cell_values.append(info["City"])
