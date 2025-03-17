@@ -273,12 +273,12 @@ def extract_info_from_json(json_file_path):
             if contractor and not any(contractor_address):
                 contractor_address = extract_address(text)
 
-            owner_match = re.search(r'owned by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
+            owner_match = re.search(r'owned\s*by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
 
             if owner:
-                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                owner_address_match = re.search(r'owned\s*by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
                 if owner_address_match:
                     owner_address = extract_address(owner_address_match.group(1))
 
@@ -372,7 +372,7 @@ def extract_info_from_json(json_file_path):
         if not any(owner_address):
             for idx, element in enumerate(elements):
                 text = element.get("Text", "")
-                if text and re.search(r'\b(owner|owners|owned by)\b', clean_text(text), re.IGNORECASE):  
+                if text and re.search(r'\b(owner|owners|owned by|ownedby)\b', clean_text(text), re.IGNORECASE):  
                     for next_idx in range(idx + 1, len(elements)):  
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
