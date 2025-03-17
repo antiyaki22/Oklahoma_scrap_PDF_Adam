@@ -219,6 +219,12 @@ def extract_info_from_json(json_file_path):
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
             
+            city_state_zip_pattern = r'([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            city_state_zip_match = re.search(city_state_zip_pattern, text)
+
+            if city_state_zip_match:
+                return None, city_state_zip_match.group(1), city_state_zip_match.group(2), city_state_zip_match.group(3) if city_state_zip_match.group(3) else None
+            
             owner_address_match = re.search(r'owned\s*by\s*[\w\s&.,-]+,\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
             if owner_address_match:
                 return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
