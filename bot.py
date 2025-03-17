@@ -356,8 +356,20 @@ def extract_info_from_json(json_file_path):
     except Exception:
         pass
 
-    if not any(owner_address) and any(contractor_address):
+    if not any(owner_address):
         owner_address = contractor_address
+
+    if not any(owner_address):
+        owner_address = claimant_address
+
+    if not any(owner_address):
+        for element in elements:
+            text = element.get("Text", "")
+            if text:
+                extracted_address = extract_address(clean_text(text))
+                if any(extracted_address):
+                    owner_address = extracted_address
+                    break
 
     return {
         "Claimant": claimant if claimant else "Not Found",
