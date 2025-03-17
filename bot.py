@@ -180,52 +180,51 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, address, city, state, and zipcode from a JSON file."""
-    nlp = spacy.load("en_core_web_sm")
+    """Extracts claimant, contractor, owner, and owner's address details from a JSON file."""
     
-    def extract_company_and_address(text, keyword):
+    def extract_company_name(text, keyword):
+        """Extracts only the company name before a given keyword."""
         match = re.search(rf'(.+?)\s+{keyword}', text, re.IGNORECASE)
-        if match and match.group(1):  # Ensure match is found and not empty
-            company_info = match.group(1).strip()
-            return detect_address_parts(company_info), company_info
-        return (None, None, None, None), None  # Ensure consistent return format
-    
-    def detect_address_parts(text):
-        doc = nlp(text)
-        address, city, state, zipcode = None, None, None, None
-        
-        for ent in doc.ents:
-            if ent.label_ in ["FAC", "LOC", "GPE"]:
-                address = ent.text if not address else address + ", " + ent.text
-            if ent.label_ == "GPE" and not city:
-                city = ent.text
-            if re.match(r'^[A-Z]{2}$', ent.text):
-                state = ent.text
-            if re.match(r'\d{5}(-\d{4})?$', ent.text):
-                zipcode = ent.text
-        
-        return address, city, state, zipcode
-    
+        if match:
+            company_name = match.group(1).strip()
+            company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  # Remove extra punctuation
+            return company_name
+        return None
+
+    def extract_address(text):
+        """Extracts address, city, state, and zip code from text using regex."""
+        address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+        match = re.search(address_pattern, text)
+        if match:
+            return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+        return None, None, None, None
+
     with open(json_file_path, "r", encoding="utf-8") as f:
         json_data = json.load(f)
     
-    claimant, claimant_address = None, (None, None, None, None)
-    contractor, contractor_address = None, (None, None, None, None)
-    owner, owner_address = None, (None, None, None, None)
-    
+    claimant, contractor, owner = None, None, None
+    claimant_address, owner_address = (None, None, None, None), (None, None, None, None)
+
     for element in json_data.get("elements", []):
         text = element.get("Text", "")
-        
-        if "claims" in text:
-            claimant_address, claimant = extract_company_and_address(text, "claims") or (None, (None, None, None, None))
-        if "against" in text:
-            contractor_address, contractor = extract_company_and_address(text, "against") or (None, (None, None, None, None))
-        if "owns" in text or "owner" in text:
-            owner_address, owner = extract_company_and_address(text, "owns|owner") or (None, (None, None, None, None))
-    
+
+        if "claims" in text and not claimant:
+            claimant = extract_company_name(text, "claims")
+            claimant_address = extract_address(text)
+
+        if ("against" in text or "upon" in text) and not contractor:
+            contractor = extract_company_name(text, "against|upon")
+
+        if ("owns" in text or "owner" in text) and not owner:
+            owner = extract_company_name(text, "owns|owner")
+            owner_address = extract_address(text)
+
     if not owner:
-        owner, owner_address = contractor, contractor_address
+        owner = contractor
     
+    if not any(owner_address):
+        owner_address = claimant_address
+
     return {
         "Claimant": claimant,
         "Contractor": contractor,
