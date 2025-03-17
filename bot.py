@@ -414,9 +414,9 @@ async def scrape_table(page, headers):
         print (f"cell values 0: ", cell_values)
 
         info = await process_pdf(docid=doc_id)
-        if cell_values[6] is '':
+        if cell_values[6] == '':
             cell_values[6] = info["Claimant"]
-        if cell_values[7] is '':
+        if cell_values[7] == '':
             cell_values[7] = info["Contractor"]
         cell_values[8] = info["Owner"]
         cell_values[9] = info["Address"]
