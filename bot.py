@@ -189,8 +189,8 @@ def extract_info_from_json(json_file_path):
     def extract_address(text):
         """Extracts a street address, city, state, and ZIP code from text."""
         address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-        match = re.search(address_pattern, text)
-        return (match.group(1), match.group(2), match.group(3), match.group(4)) if match else (None, None, None, None)
+        matches = re.findall(address_pattern, text)
+        return matches if matches else []
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
@@ -200,7 +200,7 @@ def extract_info_from_json(json_file_path):
         return {}
 
     claimant, contractor, owner = None, None, None
-    claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
+    claimant_address, contractor_address, owner_address = None, None, None
 
     try:
         for element in json_data.get("elements", []):
@@ -208,54 +208,46 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            # Extract claimant (before "claim", remove anything after first comma)
-            if "claim" in text.lower() and not claimant:
-                claimant_match = re.search(r'([\w\s]+,?\s*Inc)', text, re.IGNORECASE)
+            # Extract claimant using "has a claim against"
+            if "has a claim against" in text.lower() and not claimant:
+                claimant_match = re.search(r'(.+?),?\s+has a claim against', text, re.IGNORECASE)
                 if claimant_match:
                     claimant = claimant_match.group(1).strip()
 
-            # Extract claimant address (right after claimant name)
-            if claimant and not any(claimant_address):
-                claimant_address = extract_address(text)
-
-            # Extract contractor (after "against", handling variations like "againstDLP")
+            # Extract contractor using "against"
             if "against" in text.lower() and not contractor:
-                contractor_match = re.search(r'against\s*(?:DLP\s*)?([\w\s]+?),', text, re.IGNORECASE)
+                contractor_match = re.search(r'against\s+(.+?),', text, re.IGNORECASE)
                 if contractor_match:
                     contractor = contractor_match.group(1).strip()
 
-            # Extract contractor address (appears after contractor name)
-            if contractor and not any(contractor_address):
-                contractor_address = extract_address(text)
-
-            # Extract owner (after "owned by" or "owns")
+            # Extract owner using "owned by"
             if "owned by" in text.lower() and not owner:
-                owner_match = re.search(r'owned by\s*([\w\s,\.]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
+                owner_match = re.search(r'owned by\s+(.+?),', text, re.IGNORECASE)
                 if owner_match:
                     owner = owner_match.group(1).strip()
 
-            # Extract owner address (directly after "owned by" and owner name)
-            if owner and not any(owner_address):
-                # Look directly after "owned by [owner]" for the owner’s address
-                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)\s*(?=\s*,|\s+for|$)', text, re.IGNORECASE)
-                if owner_address_match:
-                    owner_address = extract_address(owner_address_match.group(1))
+            # Extract all addresses from the text
+            addresses = extract_address(text)
+
+            # Assign the correct addresses to claimant, contractor, and owner
+            if addresses:
+                if not claimant_address:
+                    claimant_address = addresses[0] if len(addresses) > 0 else None
+                if not contractor_address and contractor:
+                    contractor_address = addresses[1] if len(addresses) > 1 else None
+                if not owner_address and owner:
+                    owner_address = addresses[-1] if len(addresses) > 1 else None  # Pick the last occurrence as the owner’s address
 
     except Exception as e:
         print(f"Error processing elements: {e}")
-
-    # If owner's address is still not found, use contractor's address as a fallback
-    if not any(owner_address) and any(contractor_address):
-        owner_address = contractor_address
 
     return {
         "Claimant": claimant if claimant else "Not Found",
         "Contractor": contractor if contractor else "Not Found",
         "Owner": owner if owner else "Not Found",
-        "Address": owner_address[0] if owner_address[0] else "Not Found",
-        "City": owner_address[1] if owner_address[1] else "Not Found",
-        "State": owner_address[2] if owner_address[2] else "Not Found",
-        "Zipcode": owner_address[3] if owner_address[3] else "Not Found"
+        "Claimant Address": claimant_address if claimant_address else "Not Found",
+        "Contractor Address": contractor_address if contractor_address else "Not Found",
+        "Owner Address": owner_address if owner_address else "Not Found"
     }
 
 def unzip_file(zip_file_path, output_folder):
