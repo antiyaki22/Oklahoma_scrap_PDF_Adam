@@ -180,35 +180,30 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, with full error handling."""
+    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, with improved handling of miswritten words."""
 
     def extract_company_name(text, keyword, after=False):
-        """Extracts company name before or after a keyword, with error handling."""
+        """Extracts company name before or after a keyword, handling miswritten words."""
         try:
             if not text:
                 return None
-            # Improved pattern to account for miswritten words and spacing variations
-            pattern = rf'(.+?)\s+{keyword}' if not after else rf'{keyword}\s+(.+)'
+            pattern = rf'(\b.+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b.+?\b)'
             match = re.search(pattern, text, re.IGNORECASE)
-            return match.group(1).strip() if match and match.group(1) else None
+            if match:
+                return match.group(1).strip()
         except Exception as e:
             print(f"Error extracting company name for keyword '{keyword}': {e}")
-            return None
+        return None
 
     def extract_address(text):
-        """Extracts address, city, state, and zip code using regex, with error handling."""
+        """Extracts address details from text."""
         try:
             if not text:
                 return None, None, None, None
             address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
-                return (
-                    match.group(1),  
-                    match.group(2),  
-                    match.group(3),  
-                    match.group(4) if match.group(4) else None  
-                )
+                return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
         except Exception as e:
             print(f"Error extracting address: {e}")
         return None, None, None, None
@@ -229,16 +224,14 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            # Improved detection for 'claim' and 'against' keywords
             if "claim" in text.lower() and not claimant:
                 claimant_text = extract_company_name(text, "claim")
                 if claimant_text:
-                    claimant = claimant_text.split("has a")[0].strip()  # Remove "has a" if present
+                    claimant = claimant_text.split(",")[0].strip()  
 
-            if "against" in text.lower() and not contractor:
-                contractor = extract_company_name(text, "against", after=True)
-                if contractor and "against" in contractor:
-                    contractor = contractor.split("against")[1].strip()
+            match = re.search(r'against\s*(\S*\s+.+?)\s*,', text, re.IGNORECASE)
+            if match and not contractor:
+                contractor = match.group(1).strip()
 
             if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
                 owner = extract_company_name(text, r'owns|owner', after=True)
