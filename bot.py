@@ -312,7 +312,7 @@ async def set_table_headers(page) -> list:
     header_titles.append("Phone Number")
     return header_titles
 
-async def download_pdf(page, key: str, docid: str):
+async def download_pdf(page, key: str, docid: str) -> bool:
     pdf_url = None
     def response_handler(response):
         nonlocal pdf_url
@@ -327,19 +327,23 @@ async def download_pdf(page, key: str, docid: str):
     download_path = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(download_path, exist_ok=True)
 
-    response = await page.request.get(pdf_url)
+    if pdf_url:
+        response = await page.request.get(pdf_url)
 
-    if response.ok:
-        pdf_content = await response.body()
-        pdf_path = os.path.join(download_path, f"{docid}.pdf")
+        if response.ok:
+            pdf_content = await response.body()
+            pdf_path = os.path.join(download_path, f"{docid}.pdf")
+            
+            with open(pdf_path, 'wb') as pdf_file:
+                pdf_file.write(pdf_content)     
+        else:
+            print("❌ Failed to fetch PDF.")
         
-        with open(pdf_path, 'wb') as pdf_file:
-            pdf_file.write(pdf_content)     
+        await page.click(".pdf-close")
+        await asyncio.sleep(2)
+        return True
     else:
-        print("❌ Failed to fetch PDF.")
-    
-    await page.click(".pdf-close")
-    await asyncio.sleep(2)
+        return False
 
 def remove_watermark(wm_text, inputFile, outputFile):
     from PyPDF4 import PdfFileReader, PdfFileWriter
@@ -413,37 +417,37 @@ async def scrape_table(page, headers):
         else:
             print("Document not found!")
 
-        await download_pdf(page, key=instrument_number, docid=doc_id)
+        downloaded = await download_pdf(page, key=instrument_number, docid=doc_id)
+        if downloaded:
+            input_path = f"downloads/{doc_id}.pdf"
+            temp_output_path = f"downloads/{doc_id}_no_watermark.pdf"
 
-        input_path = f"downloads/{doc_id}.pdf"
-        temp_output_path = f"downloads/{doc_id}_no_watermark.pdf"
+            remove_watermark("UNOFFICIAL", input_path, temp_output_path)
 
-        remove_watermark("UNOFFICIAL", input_path, temp_output_path)
+            if os.path.exists(temp_output_path):
+                os.remove(input_path) 
+                os.rename(temp_output_path, input_path) 
+                print(f"Successfully replaced {input_path} with watermark-free version.")
+            else:
+                print("Error: Watermark removal failed, new file not created.")
 
-        if os.path.exists(temp_output_path):
-            os.remove(input_path) 
-            os.rename(temp_output_path, input_path) 
-            print(f"Successfully replaced {input_path} with watermark-free version.")
-        else:
-            print("Error: Watermark removal failed, new file not created.")
+            cell_values[0] = f"{doc_id}.pdf"
+            print (f"cell values 0: ", cell_values)
 
-        cell_values[0] = f"{doc_id}.pdf"
-        print (f"cell values 0: ", cell_values)
-
-        info = await process_pdf(docid=doc_id)
-        if cell_values[6] == "N/A":
-            cell_values[6] = info["Claimant"]
-        if cell_values[7] == "N/A":
-            cell_values[7] = info["Contractor"]
-        if cell_values[8] == "N/A":
-            cell_values[8] = info["Owner"]
-        cell_values[9] = info["Address"]
-        cell_values.append(info["City"])
-        cell_values.append(info["State"])
-        cell_values.append(info["Zipcode"])
-        cell_values.append(info["Dollar"])
-        cell_values.append(info["Phone"])
-        print (f"cell values 1: ", cell_values)
+            info = await process_pdf(docid=doc_id)
+            if cell_values[6] == "N/A":
+                cell_values[6] = info["Claimant"]
+            if cell_values[7] == "N/A":
+                cell_values[7] = info["Contractor"]
+            if cell_values[8] == "N/A":
+                cell_values[8] = info["Owner"]
+            cell_values[9] = info["Address"]
+            cell_values.append(info["City"])
+            cell_values.append(info["State"])
+            cell_values.append(info["Zipcode"])
+            cell_values.append(info["Dollar"])
+            cell_values.append(info["Phone"])
+            print (f"cell values 1: ", cell_values)
 
         save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
