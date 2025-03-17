@@ -180,65 +180,89 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, and their respective address details accurately from a JSON file."""
-
     def clean_text(text):
-        """Removes non-ASCII characters and extra spaces from text."""
-        return re.sub(r'[^\x00-\x7F]+', '', text).strip()
+        return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
+
+    def extract_company_name(text, keyword, after=False):
+        try:
+            if not text:
+                return None
+            text = clean_text(text)
+            pattern = rf'(\b[\w\s&.,-]+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b[\w\s&.,-]+?\b)'
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip().rstrip(',')
+        except Exception:
+            pass
+        return None
 
     def extract_address(text):
-        """Extracts a street address, city, state, and ZIP code from text."""
-        address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-        matches = re.findall(address_pattern, text)
-        return matches if matches else []
+        try:
+            if not text:
+                return None, None, None, None
+            text = clean_text(text)
+            address_pattern = r'(\d+\s[\w\s.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            match = re.search(address_pattern, text)
+            if match:
+                return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+        except Exception:
+            pass
+        return None, None, None, None
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
-    except Exception as e:
-        print(f"Error reading JSON file: {e}")
+    except Exception:
         return {}
 
     claimant, contractor, owner = None, None, None
-    claimant_address, contractor_address, owner_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
+    claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
 
     try:
         for element in json_data.get("elements", []):
-            text = clean_text(element.get("Text", ""))
+            text = element.get("Text", "")
             if not text:
                 continue  
 
+            text = clean_text(text)
+
+            # Fix spacing errors like "owned byBarbara"
+            text = re.sub(r'owned by([A-Z])', r'owned by \1', text)
+
             # Extract claimant (before "claim")
-            claimant_match = re.search(r'(.+?)\s+claim', text, re.IGNORECASE)
-            if claimant_match and not claimant:
-                claimant = claimant_match.group(1).strip()
+            if "claim" in text.lower() and not claimant:
+                claimant_match = re.search(r'([\w\s&.,-]+?),?\s*has a claim', text, re.IGNORECASE)
+                if claimant_match:
+                    claimant = claimant_match.group(1).strip()
+
+            # Extract claimant address (after claimant name)
+            if claimant and not any(claimant_address):
+                claimant_address = extract_address(text)
 
             # Extract contractor (after "against")
-            contractor_match = re.search(r'against\s+(.+?)(?:,|for|\.)', text, re.IGNORECASE)
+            contractor_match = re.search(r'against\s*([\w\s&.,-]+?),', text, re.IGNORECASE)
             if contractor_match and not contractor:
                 contractor = contractor_match.group(1).strip()
 
+            # Extract contractor address
+            if contractor and not any(contractor_address):
+                contractor_address = extract_address(text)
+
             # Extract owner (after "owned by")
-            owner_match = re.search(r'owned by\s+(.+?)(?:,|and|being|\.)', text, re.IGNORECASE)
+            owner_match = re.search(r'owned by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
 
-            # Extract all addresses from the text
-            addresses = extract_address(text)
+            # Extract owner address (after "owned by" and owner name)
+            if owner:
+                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                if owner_address_match:
+                    owner_address = extract_address(owner_address_match.group(1))
 
-            # Assign addresses correctly
-            if addresses:
-                if not any(claimant_address):
-                    claimant_address = addresses[0] if len(addresses) > 0 else (None, None, None, None)
-                if not any(contractor_address) and contractor:
-                    contractor_address = addresses[1] if len(addresses) > 1 else (None, None, None, None)
-                if not any(owner_address) and owner:
-                    owner_address = addresses[-1] if len(addresses) > 1 else (None, None, None, None)  # Assign last occurrence
+    except Exception:
+        pass
 
-    except Exception as e:
-        print(f"Error processing elements: {e}")
-
-    # If owner's address is still not found, use contractor's address as a fallback
+    # If owner's address is missing, use contractor's address as fallback
     if not any(owner_address) and any(contractor_address):
         owner_address = contractor_address
 
