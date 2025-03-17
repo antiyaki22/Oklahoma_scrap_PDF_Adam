@@ -201,15 +201,20 @@ def extract_info_from_json(json_file_path):
         return None
 
     def extract_address(text):
-        """Extracts address details from text."""
+        """Extracts address details from text and ensures it stops at a valid address."""
         try:
             if not text:
                 return None, None, None, None
             text = clean_text(text)  # Remove weird characters
-            address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+            # The pattern for valid address formats (e.g., street address, city, state, zip)
+            address_pattern = r'(\d+\s[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+            else:
+                # If address not found, return empty
+                return None, None, None, None
         except Exception as e:
             print(f"Error extracting address: {e}")
         return None, None, None, None
@@ -430,7 +435,8 @@ async def scrape_table(page, headers):
             cell_values[6] = info["Claimant"]
         if cell_values[7] == '':
             cell_values[7] = info["Contractor"]
-        cell_values[8] = info["Owner"]
+        if cell_values[8] == '':
+            cell_values[8] = info["Owner"]
         cell_values[9] = info["Address"]
         cell_values.append(info["City"])
         cell_values.append(info["State"])
