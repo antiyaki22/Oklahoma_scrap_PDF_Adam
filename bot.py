@@ -187,6 +187,7 @@ def extract_info_from_json(json_file_path):
         try:
             if not text:
                 return None
+            # Improved pattern to account for miswritten words and spacing variations
             pattern = rf'(.+?)\s+{keyword}' if not after else rf'{keyword}\s+(.+)'
             match = re.search(pattern, text, re.IGNORECASE)
             return match.group(1).strip() if match and match.group(1) else None
@@ -228,11 +229,16 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            if "claim" in text and not claimant:
-                claimant = extract_company_name(text, "claim")
+            # Improved detection for 'claim' and 'against' keywords
+            if "claim" in text.lower() and not claimant:
+                claimant_text = extract_company_name(text, "claim")
+                if claimant_text:
+                    claimant = claimant_text.split("has a")[0].strip()  # Remove "has a" if present
 
-            if "against" in text and not contractor:
+            if "against" in text.lower() and not contractor:
                 contractor = extract_company_name(text, "against", after=True)
+                if contractor and "against" in contractor:
+                    contractor = contractor.split("against")[1].strip()
 
             if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
                 owner = extract_company_name(text, r'owns|owner', after=True)
@@ -418,7 +424,7 @@ async def scrape_table(page, headers):
         cell_values.append(info["State"])
         cell_values.append(info["Zipcode"])
         cell_values.append(info["Dollar"])
-        cell_values.append(info("Phone"))
+        cell_values.append(info["Phone"])
 
         save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
