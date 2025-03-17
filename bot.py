@@ -238,19 +238,23 @@ def extract_info_from_json(json_file_path):
                 if claimant_match:
                     claimant = claimant_match.group(1).strip()
 
+            # Extract claimant address (right after claimant name)
+            if claimant and not any(claimant_address):
+                claimant_address = extract_address(text)
+
             # Extract contractor (after "against", handle miswritten variations like "againstDLP")
             contractor_match = re.search(r'against\s*(?:DLP\s*)?([\w\s]+?),', text, re.IGNORECASE)
             if contractor_match and not contractor:
                 contractor = contractor_match.group(1).strip()
 
+            # Extract contractor address (appears after contractor name)
+            if contractor and not any(contractor_address):
+                contractor_address = extract_address(text)
+
             # Extract owner (after "owned by" or "owns")
             owner_match = re.search(r'owned by\s*([\w\s,\.]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
-
-            # Extract contractor address (appears after contractor name)
-            if contractor and not any(contractor_address):
-                contractor_address = extract_address(text)
 
             # Extract owner address (appears after owner name)
             if owner and not any(owner_address):
@@ -259,11 +263,17 @@ def extract_info_from_json(json_file_path):
     except Exception as e:
         print(f"Error processing elements: {e}")
 
+    # Ensure owner gets the correct address (not the claimant’s)
+    if not any(owner_address) and owner:
+        owner_address_match = re.search(rf'{re.escape(owner)}\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+        if owner_address_match:
+            owner_address = extract_address(owner_address_match.group(1))
+
     # Fallback logic for missing owner
     if not owner:
         owner = contractor if contractor else "Not Found"
     
-    # If owner's address is not found, use contractor's address as a fallback
+    # If owner's address is still not found, use contractor's address as a fallback
     if not any(owner_address):
         owner_address = contractor_address
 
