@@ -275,28 +275,31 @@ def extract_info_from_json(json_file_path):
                 if not owner:
                     owner = extract_company_name(text, 'owned by')  # Extract potential owner info
 
-                # Check previous and next blocks for more clues
-                if idx > 0:
-                    prev_element = elements[idx - 1]
-                    prev_text = prev_element.get("Text", "")
-                    prev_text = clean_text(prev_text)
-                    if not claimant:
-                        claimant = extract_company_name(prev_text, 'claim')
-                    if not contractor:
-                        contractor = extract_company_name(prev_text, 'against')
-                    if not owner:
-                        owner = extract_company_name(prev_text, 'owned by')
+                # Check previous 3 blocks for more clues
+                for prev_idx in range(idx - 1, idx - 4, -1):  # Searching up to 3 previous blocks
+                    if 0 <= prev_idx < len(elements):
+                        prev_element = elements[prev_idx]
+                        prev_text = prev_element.get("Text", "")
+                        prev_text = clean_text(prev_text)
+                        if not claimant:
+                            claimant = extract_company_name(prev_text, 'claim')
+                        if not contractor:
+                            contractor = extract_company_name(prev_text, 'against')
+                        if not owner:
+                            owner = extract_company_name(prev_text, 'owned by')
 
-                if idx < len(elements) - 1:
-                    next_element = elements[idx + 1]
-                    next_text = next_element.get("Text", "")
-                    next_text = clean_text(next_text)
-                    if not claimant:
-                        claimant = extract_company_name(next_text, 'claim')
-                    if not contractor:
-                        contractor = extract_company_name(next_text, 'against')
-                    if not owner:
-                        owner = extract_company_name(next_text, 'owned by')
+                # Check next 3 blocks for more clues
+                for next_idx in range(idx + 1, idx + 4):  # Searching up to 3 next blocks
+                    if 0 <= next_idx < len(elements):
+                        next_element = elements[next_idx]
+                        next_text = next_element.get("Text", "")
+                        next_text = clean_text(next_text)
+                        if not claimant:
+                            claimant = extract_company_name(next_text, 'claim')
+                        if not contractor:
+                            contractor = extract_company_name(next_text, 'against')
+                        if not owner:
+                            owner = extract_company_name(next_text, 'owned by')
 
                 # If owner info is found, extract the address near it
                 if owner and not any(owner_address):
