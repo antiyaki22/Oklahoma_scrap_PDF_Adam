@@ -190,11 +190,9 @@ def extract_address(json_file_path):
 
 def extract_info_from_json(json_file_path):
     def clean_text(text):
-        """Cleans non-ASCII characters and trims spaces."""
         return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
 
     def extract_company_name(text, keyword, after=False):
-        """Extracts company name based on the keyword, can extract before or after the keyword."""
         try:
             if not text:
                 return None
@@ -208,7 +206,6 @@ def extract_info_from_json(json_file_path):
         return None
 
     def extract_address(text):
-        """Extracts address information from the provided text."""
         try:
             if not text:
                 return None, None, None, None
@@ -375,7 +372,8 @@ def extract_info_from_json(json_file_path):
             for element in elements:
                 text = element.get("Text", "")
                 if text:
-                    extracted_address = extract_address(clean_text(text))
+                    combined_text = ' '.join([e.get("Text", "") for e in elements[idx-1:idx+2]])  
+                    extracted_address = extract_address(clean_text(combined_text))
                     if any(extracted_address):
                         owner_address = extracted_address
                         break
