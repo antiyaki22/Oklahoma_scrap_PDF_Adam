@@ -183,14 +183,15 @@ def extract_info_from_json(json_file_path):
     def clean_text(text):
         return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
 
-    def extract_company_name(text):
+    def extract_company_name(text, keyword, after=False):
         try:
             if not text:
                 return None
             text = clean_text(text)
-            match = re.search(r'\b[A-Z][\w\s&.,-]+(?:LLC|Inc|Corporation|Trust|Ltd|Co|Group)?\b', text)
+            pattern = rf'(\b[\w\s&.,-]+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b[\w\s&.,-]+?\b)'
+            match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(0).strip().rstrip(',')
+                return match.group(1).strip().rstrip(',')
         except Exception:
             pass
         return None
@@ -214,12 +215,12 @@ def extract_info_from_json(json_file_path):
     except Exception:
         return {}
 
-    elements = json_data.get("elements", [])
     claimant, contractor, owner = None, None, None
     claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
 
     try:
-        for i, element in enumerate(elements):
+        elements = json_data.get("elements", [])
+        for idx, element in enumerate(elements):
             text = element.get("Text", "")
             if not text:
                 continue  
@@ -229,42 +230,83 @@ def extract_info_from_json(json_file_path):
             # Fix spacing errors like "owned byBarbara"
             text = re.sub(r'owned by([A-Z])', r'owned by \1', text)
 
-            # Detect the main block with keywords
-            if "claim" in text.lower() and "against" in text.lower():
-                # Extract claimant from the previous 1-2 blocks if missing
-                if not claimant and i > 0:
-                    for j in range(1, 3):
-                        if i - j >= 0:
-                            prev_text = clean_text(elements[i - j].get("Text", ""))
-                            claimant_candidate = extract_company_name(prev_text)
-                            if claimant_candidate:
-                                claimant = claimant_candidate
-                                break
-                
-                # Extract contractor from the next 1-2 blocks if missing
-                if not contractor and i < len(elements) - 1:
-                    for j in range(1, 3):
-                        if i + j < len(elements):
-                            next_text = clean_text(elements[i + j].get("Text", ""))
-                            contractor_candidate = extract_company_name(next_text)
-                            if contractor_candidate:
-                                contractor = contractor_candidate
-                                break
+            # Extract claimant (before "claim")
+            if "claim" in text.lower() and not claimant:
+                claimant_match = re.search(r'([\w\s&.,-]+?),?\s*has a claim', text, re.IGNORECASE)
+                if claimant_match:
+                    claimant = claimant_match.group(1).strip()
 
-            # Detect the "owned by" block
-            if "owned by" in text.lower():
-                owner_match = re.search(r'owned by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
-                if owner_match:
-                    owner = owner_match.group(1).strip()
-                    owner_address = extract_address(text)
+            # Extract claimant address (after claimant name)
+            if claimant and not any(claimant_address):
+                claimant_address = extract_address(text)
 
-                # If owner is not found, check the next block
-                elif not owner and i < len(elements) - 1:
-                    next_text = clean_text(elements[i + 1].get("Text", ""))
-                    owner_candidate = extract_company_name(next_text)
-                    if owner_candidate:
-                        owner = owner_candidate
-                        owner_address = extract_address(next_text)
+            # Extract contractor (after "against")
+            contractor_match = re.search(r'against\s*([\w\s&.,-]+?),', text, re.IGNORECASE)
+            if contractor_match and not contractor:
+                contractor = contractor_match.group(1).strip()
+
+            # Extract contractor address
+            if contractor and not any(contractor_address):
+                contractor_address = extract_address(text)
+
+            # Extract owner (after "owned by")
+            owner_match = re.search(r'owned by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
+            if owner_match and not owner:
+                owner = owner_match.group(1).strip()
+
+            # Extract owner address (after "owned by" and owner name)
+            if owner:
+                owner_address_match = re.search(r'owned by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
+                if owner_address_match:
+                    owner_address = extract_address(owner_address_match.group(1))
+
+        # If no information found in the current block, check neighboring blocks
+        if not claimant or not contractor or not owner:
+            for idx, element in enumerate(elements):
+                text = element.get("Text", "")
+                if not text:
+                    continue
+
+                text = clean_text(text)
+                if not claimant:
+                    claimant = extract_company_name(text, 'claim')  # Extract potential claimant info
+                if not contractor:
+                    contractor = extract_company_name(text, 'against')  # Extract potential contractor info
+                if not owner:
+                    owner = extract_company_name(text, 'owned by')  # Extract potential owner info
+
+                # Check neighboring blocks for more clues
+                if idx > 0:
+                    prev_element = elements[idx - 1]
+                    prev_text = prev_element.get("Text", "")
+                    prev_text = clean_text(prev_text)
+                    if not claimant:
+                        claimant = extract_company_name(prev_text, 'claim')
+                    if not contractor:
+                        contractor = extract_company_name(prev_text, 'against')
+                    if not owner:
+                        owner = extract_company_name(prev_text, 'owned by')
+
+                if idx < len(elements) - 1:
+                    next_element = elements[idx + 1]
+                    next_text = next_element.get("Text", "")
+                    next_text = clean_text(next_text)
+                    if not claimant:
+                        claimant = extract_company_name(next_text, 'claim')
+                    if not contractor:
+                        contractor = extract_company_name(next_text, 'against')
+                    if not owner:
+                        owner = extract_company_name(next_text, 'owned by')
+
+                # If owner info is found, extract the address near it
+                if owner and not any(owner_address):
+                    for surrounding_idx in [idx - 1, idx + 1]:  # Check previous and next block for owner address
+                        if 0 <= surrounding_idx < len(elements):
+                            surrounding_text = elements[surrounding_idx].get("Text", "")
+                            if surrounding_text:
+                                owner_address = extract_address(surrounding_text)
+                                if any(owner_address):
+                                    break
 
     except Exception:
         pass
