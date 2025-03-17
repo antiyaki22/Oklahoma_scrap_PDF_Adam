@@ -209,6 +209,8 @@ def extract_info_from_json(json_file_path):
         try:
             if not text:
                 return None, None, None, None
+
+            text = re.sub(r'(\bowned by)([A-Z])', r'\1 \2', text)
             text = clean_text(text)
 
             address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace)?)\s*,\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
