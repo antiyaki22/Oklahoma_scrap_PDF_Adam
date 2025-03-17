@@ -275,7 +275,7 @@ def extract_info_from_json(json_file_path):
                 if not owner:
                     owner = extract_company_name(text, 'owned by')  # Extract potential owner info
 
-                # Check neighboring blocks for more clues
+                # Check previous and next blocks for more clues
                 if idx > 0:
                     prev_element = elements[idx - 1]
                     prev_text = prev_element.get("Text", "")
