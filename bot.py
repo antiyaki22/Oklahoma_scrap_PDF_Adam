@@ -200,7 +200,7 @@ def extract_info_from_json(json_file_path):
         return {}
 
     claimant, contractor, owner = None, None, None
-    claimant_address, contractor_address, owner_address = None, None, None
+    claimant_address, contractor_address, owner_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
 
     try:
         for element in json_data.get("elements", []):
@@ -229,25 +229,30 @@ def extract_info_from_json(json_file_path):
             # Extract all addresses from the text
             addresses = extract_address(text)
 
-            # Assign the correct addresses to claimant, contractor, and owner
+            # Assign addresses correctly
             if addresses:
-                if not claimant_address:
-                    claimant_address = addresses[0] if len(addresses) > 0 else None
-                if not contractor_address and contractor:
-                    contractor_address = addresses[1] if len(addresses) > 1 else None
-                if not owner_address and owner:
-                    owner_address = addresses[-1] if len(addresses) > 1 else None  # Pick the last occurrence as the owner’s address
+                if not any(claimant_address):
+                    claimant_address = addresses[0] if len(addresses) > 0 else (None, None, None, None)
+                if not any(contractor_address) and contractor:
+                    contractor_address = addresses[1] if len(addresses) > 1 else (None, None, None, None)
+                if not any(owner_address) and owner:
+                    owner_address = addresses[-1] if len(addresses) > 1 else (None, None, None, None)  # Assign last occurrence
 
     except Exception as e:
         print(f"Error processing elements: {e}")
+
+    # If owner's address is still not found, use contractor's address as a fallback
+    if not any(owner_address) and any(contractor_address):
+        owner_address = contractor_address
 
     return {
         "Claimant": claimant if claimant else "Not Found",
         "Contractor": contractor if contractor else "Not Found",
         "Owner": owner if owner else "Not Found",
-        "Claimant Address": claimant_address if claimant_address else "Not Found",
-        "Contractor Address": contractor_address if contractor_address else "Not Found",
-        "Owner Address": owner_address if owner_address else "Not Found"
+        "Address": owner_address[0] if owner_address[0] else "Not Found",
+        "City": owner_address[1] if owner_address[1] else "Not Found",
+        "State": owner_address[2] if owner_address[2] else "Not Found",
+        "Zipcode": owner_address[3] if owner_address[3] else "Not Found"
     }
 
 def unzip_file(zip_file_path, output_folder):
