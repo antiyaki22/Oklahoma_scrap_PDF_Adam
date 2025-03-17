@@ -208,23 +208,20 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            # Extract claimant using "has a claim against"
-            if "has a claim against" in text.lower() and not claimant:
-                claimant_match = re.search(r'(.+?),?\s+has a claim against', text, re.IGNORECASE)
-                if claimant_match:
-                    claimant = claimant_match.group(1).strip()
+            # Extract claimant (before "claim")
+            claimant_match = re.search(r'(.+?)\s+claim', text, re.IGNORECASE)
+            if claimant_match and not claimant:
+                claimant = claimant_match.group(1).strip()
 
-            # Extract contractor using "against"
-            if "against" in text.lower() and not contractor:
-                contractor_match = re.search(r'against\s+(.+?),', text, re.IGNORECASE)
-                if contractor_match:
-                    contractor = contractor_match.group(1).strip()
+            # Extract contractor (after "against")
+            contractor_match = re.search(r'against\s+(.+?)(?:,|for|\.)', text, re.IGNORECASE)
+            if contractor_match and not contractor:
+                contractor = contractor_match.group(1).strip()
 
-            # Extract owner using "owned by"
-            if "owned by" in text.lower() and not owner:
-                owner_match = re.search(r'owned by\s+(.+?),', text, re.IGNORECASE)
-                if owner_match:
-                    owner = owner_match.group(1).strip()
+            # Extract owner (after "owned by")
+            owner_match = re.search(r'owned by\s+(.+?)(?:,|and|being|\.)', text, re.IGNORECASE)
+            if owner_match and not owner:
+                owner = owner_match.group(1).strip()
 
             # Extract all addresses from the text
             addresses = extract_address(text)
