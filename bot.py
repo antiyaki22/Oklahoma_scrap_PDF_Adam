@@ -283,15 +283,24 @@ def extract_info_from_json(json_file_path):
                             contractor = clean_text(next_text)
 
             if "Owners:" in text:
-                for next_idx in range(idx + 1, idx + 5):
+                found_owner_section = False
+
+                for next_idx in range(idx + 1, idx + 10):
                     if 0 <= next_idx < len(elements):
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
                         next_text = clean_text(next_text)
-                        if not owner and next_text:
+
+                        if not owner and next_text:  
                             owner = next_text
-                        if owner and not any(owner_address):
-                            owner_address = extract_address(next_text)
+                            found_owner_section = True
+                            continue  
+
+                        if owner and found_owner_section and not any(owner_address):  
+                            extracted_address = extract_address(next_text)
+                            if any(extracted_address):
+                                owner_address = extracted_address
+                                break 
 
         if not claimant or not contractor or not owner:
             for idx, element in enumerate(elements):
@@ -307,7 +316,7 @@ def extract_info_from_json(json_file_path):
                 if not owner:
                     owner = extract_company_name(text, 'owned by')  
 
-                for prev_idx in range(idx - 1, idx - 4, -1):  
+                for prev_idx in range(idx - 1, idx - 10, -1):  
                     if 0 <= prev_idx < len(elements):
                         prev_element = elements[prev_idx]
                         prev_text = prev_element.get("Text", "")
@@ -319,7 +328,7 @@ def extract_info_from_json(json_file_path):
                         if not owner:
                             owner = extract_company_name(prev_text, 'owned by')
 
-                for next_idx in range(idx + 1, idx + 4):
+                for next_idx in range(idx + 1, idx + 10):
                     if 0 <= next_idx < len(elements):
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
