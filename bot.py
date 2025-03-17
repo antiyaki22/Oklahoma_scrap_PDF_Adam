@@ -186,9 +186,11 @@ def extract_info_from_json(json_file_path):
         """Extracts only the company name before a given keyword."""
         match = re.search(rf'(.+?)\s+{keyword}', text, re.IGNORECASE)
         if match:
-            company_name = match.group(1).strip()
-            company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  # Remove extra punctuation
-            return company_name
+            company_name = match.group(1)
+            if company_name:
+                company_name = company_name.strip()
+                company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  
+                return company_name
         return None
 
     def extract_address(text):
@@ -196,7 +198,12 @@ def extract_info_from_json(json_file_path):
         address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
         match = re.search(address_pattern, text)
         if match:
-            return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+            return (
+                match.group(1), 
+                match.group(2),  
+                match.group(3),  
+                match.group(4) if match.group(4) else None 
+            )
         return None, None, None, None
 
     with open(json_file_path, "r", encoding="utf-8") as f:
@@ -210,7 +217,7 @@ def extract_info_from_json(json_file_path):
 
         if "claims" in text and not claimant:
             claimant = extract_company_name(text, "claims")
-            claimant_address = extract_address(text)
+            claimant_address = extract_address(text) if not any(claimant_address) else claimant_address
 
         if ("against" in text or "upon" in text) and not contractor:
             contractor = extract_company_name(text, "against|upon")
@@ -226,13 +233,13 @@ def extract_info_from_json(json_file_path):
         owner_address = claimant_address
 
     return {
-        "Claimant": claimant,
-        "Contractor": contractor,
-        "Owner": owner,
-        "Address": owner_address[0],
-        "City": owner_address[1],
-        "State": owner_address[2],
-        "Zipcode": owner_address[3]
+        "Claimant": claimant if claimant else "Not Found",
+        "Contractor": contractor if contractor else "Not Found",
+        "Owner": owner if owner else "Not Found",
+        "Address": owner_address[0] if owner_address[0] else "Not Found",
+        "City": owner_address[1] if owner_address[1] else "Not Found",
+        "State": owner_address[2] if owner_address[2] else "Not Found",
+        "Zipcode": owner_address[3] if owner_address[3] else "Not Found"
     }
 
 def unzip_file(zip_file_path, output_folder):
