@@ -317,6 +317,14 @@ def extract_info_from_json(json_file_path):
                                 owner_address = extracted_address
                                 break
 
+                if not any(owner_address):
+                    merged_text = " ".join(
+                        clean_text(elements[i].get("Text", "")) 
+                        for i in range(idx + 1, min(idx + 16, len(elements)))
+                    )
+
+                    owner_address = extract_address(merged_text)
+
         if not claimant or not contractor or not owner:
             for idx, element in enumerate(elements):
                 text = element.get("Text", "")
