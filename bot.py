@@ -212,15 +212,19 @@ def extract_info_from_json(json_file_path):
             
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            address_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
-            match = re.search(address_pattern, text)
-            if match:
-                street = match.group(1)
-                city = match.group(3)
-                state = match.group(4)
-                zip_code = match.group(5) if match.group(5) else None
-                return street, city, state, zip_code
+            matches = re.findall(address_pattern, text)
+            
+            if matches:
+                for match in matches:
+                    street = match[0]
+                    city = match[2]
+                    state = match[3]
+                    zip_code = match[4] if match[4] else None
+                    
+                    if city and state:
+                        return street, city.strip(), state, zip_code
 
         except Exception:
             pass
