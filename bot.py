@@ -213,11 +213,25 @@ def extract_info_from_json(json_file_path):
             text = re.sub(r'(\bowned by)([A-Z])', r'\1 \2', text)
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy)?)\s*,?\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace)?)\s*,\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
             match = re.search(address_pattern, text)
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+
+            flexible_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+            matches = re.findall(flexible_pattern, text)
+            
+            if matches:
+                for match in matches:
+                    street = match[0]
+                    city = match[2]
+                    state = match[3]
+                    zip_code = match[4] if match[4] else None
+                    
+                    if city and state:
+                        return street, city.strip(), state, zip_code
 
         except Exception:
             pass
@@ -371,14 +385,29 @@ def extract_info_from_json(json_file_path):
     except Exception:
         pass
 
+    if not any(owner_address):
+        owner_address = contractor_address
+
+    if not any(owner_address):
+        owner_address = claimant_address
+
+    if not any(owner_address):
+        for element in elements:
+            text = element.get("Text", "")
+            if text:
+                extracted_address = extract_address(clean_text(text))
+                if any(extracted_address):
+                    owner_address = extracted_address
+                    break
+
     return {
-        "Claimant": claimant or "Not Found",
-        "Contractor": contractor or "Not Found",
-        "Owner": owner or "Not Found",
-        "Address": owner_address[0] or "Not Found",
-        "City": owner_address[1] or "Not Found",
-        "State": owner_address[2] or "Not Found",
-        "Zipcode": owner_address[3] or "Not Found"
+        "Claimant": claimant if claimant else "Not Found",
+        "Contractor": contractor if contractor else "Not Found",
+        "Owner": owner if owner else "Not Found",
+        "Address": owner_address[0] if owner_address[0] else "Not Found",
+        "City": owner_address[1] if owner_address[1] else "Not Found",
+        "State": owner_address[2] if owner_address[2] else "Not Found",
+        "Zipcode": owner_address[3] if owner_address[3] else "Not Found"
     }
 
 def unzip_file(zip_file_path, output_folder):
