@@ -321,8 +321,9 @@ def extract_info_from_json(json_file_path):
                     merged_text = " ".join(
                         clean_text(elements[i].get("Text", "")) 
                         for i in range(idx + 1, min(idx + 16, len(elements)))
+                        if elements[i].get("Text", "").strip()
                     )
-
+                    print (f"merged text: {merged_text}")
                     owner_address = extract_address(merged_text)
 
         if not claimant or not contractor or not owner:
