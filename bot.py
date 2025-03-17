@@ -209,12 +209,17 @@ def extract_info_from_json(json_file_path):
         try:
             if not text:
                 return None, None, None, None
-            
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace)?)\s*,\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
-            matches = re.findall(address_pattern, text)
+            match = re.search(address_pattern, text)
+            if match:
+                return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+
+            flexible_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+            matches = re.findall(flexible_pattern, text)
             
             if matches:
                 for match in matches:
@@ -228,7 +233,7 @@ def extract_info_from_json(json_file_path):
 
         except Exception:
             pass
-        
+
         return None, None, None, None
 
     try:
@@ -296,27 +301,24 @@ def extract_info_from_json(json_file_path):
                             contractor = clean_text(next_text)
 
             if "Owners:" in text:
-                # Search next blocks for owner name and address
                 found_owner_section = False
 
-                # First, look for the owner name in the next blocks
-                for next_idx in range(idx + 1, idx + 5):  # Search the next 4 blocks
+                for next_idx in range(idx + 1, idx + 5): 
                     if 0 <= next_idx < len(elements):
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
                         next_text = clean_text(next_text)
 
-                        if not owner and next_text:  # First, find the owner name
+                        if not owner and next_text: 
                             owner = next_text
                             found_owner_section = True
-                            continue  # Continue to next block for the address
+                            continue  
 
-                        # Once we have the owner name, search for the address
                         if owner and found_owner_section and not any(owner_address):  
                             extracted_address = extract_address(next_text)
                             if any(extracted_address):
                                 owner_address = extracted_address
-                                break  # Stop once address is found
+                                break 
 
         if not claimant or not contractor or not owner:
             for idx, element in enumerate(elements):
@@ -387,19 +389,14 @@ def extract_info_from_json(json_file_path):
     if not any(owner_address):
         owner_address = claimant_address
 
-    print (f"owner address 0: {owner_address}")
     if not any(owner_address):
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         for element in elements:
             text = element.get("Text", "")
-            print (f"text: {text}")
             if text:
                 extracted_address = extract_address(clean_text(text))
-                print (f"extracted address: {extract_address}")
                 if any(extracted_address):
                     owner_address = extracted_address
                     break
-    print (f"owner address 1: {owner_address}")
 
     return {
         "Claimant": claimant if claimant else "Not Found",
