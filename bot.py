@@ -182,11 +182,16 @@ def extract_address(json_file_path):
 def extract_info_from_json(json_file_path):
     """Extracts claimant, contractor, owner, and owner's address details from a JSON file, with improved handling of miswritten words."""
 
+    def clean_text(text):
+        """Removes non-ASCII characters from text."""
+        return re.sub(r'[^\x00-\x7F]+', '', text)
+
     def extract_company_name(text, keyword, after=False):
         """Extracts company name before or after a keyword, handling miswritten words."""
         try:
             if not text:
                 return None
+            text = clean_text(text) 
             pattern = rf'(\b.+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b.+?\b)'
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
@@ -200,6 +205,7 @@ def extract_info_from_json(json_file_path):
         try:
             if not text:
                 return None, None, None, None
+            text = clean_text(text)  
             address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
@@ -216,13 +222,15 @@ def extract_info_from_json(json_file_path):
         return {}
 
     claimant, contractor, owner = None, None, None
-    claimant_address, owner_address = (None, None, None, None), (None, None, None, None)
+    claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
 
     try:
         for element in json_data.get("elements", []):
             text = element.get("Text", "")
             if not text:
                 continue  
+
+            text = clean_text(text) 
 
             if "claim" in text.lower() and not claimant:
                 claimant_text = extract_company_name(text, "claim")
@@ -234,13 +242,12 @@ def extract_info_from_json(json_file_path):
             match = re.search(r'against\s*([\w\s]+?)(?=,| for|$)', text, re.IGNORECASE)
             if match and not contractor:
                 contractor = match.group(1).strip()
-                contractor = contractor.replace("DLP", "").strip() 
+                contractor = contractor.replace("DLP", "").strip()  
+                contractor_address = extract_address(text) 
 
             owner_match = re.search(r'owns\s*(.+?)\s*,', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
-            
-            if owner and not any(owner_address):
                 owner_address = extract_address(text)
 
     except Exception as e:
@@ -251,7 +258,7 @@ def extract_info_from_json(json_file_path):
             owner = contractor if contractor else "Not Found"
 
         if not any(owner_address):  
-            owner_address = claimant_address
+            owner_address = contractor_address
 
     except Exception as e:
         print(f"Error in fallback logic: {e}")
@@ -383,7 +390,7 @@ async def scrape_table(page, headers):
 
     for row in rows:
         cells = await row.query_selector_all(TABLE_CELL_SELECTOR)
-        cell_values = [await cell.text_content() or "N/A" for cell in cells]
+        cell_values = [await cell.text_content().strip() or "N/A" for cell in cells]
 
         pdf_html_element = await cells[0].query_selector("div > button:first-of-type")
         pdf_html = await pdf_html_element.evaluate("element => element.outerHTML")
