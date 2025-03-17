@@ -180,18 +180,18 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, with improved handling of miswritten words."""
+    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, ensuring accuracy."""
 
     def clean_text(text):
         """Removes non-ASCII characters from text."""
         return re.sub(r'[^\x00-\x7F]+', '', text)
 
     def extract_company_name(text, keyword, after=False):
-        """Extracts company name before or after a keyword, handling miswritten words."""
+        """Extracts company name before or after a keyword."""
         try:
             if not text:
                 return None
-            text = clean_text(text) 
+            text = clean_text(text)  # Remove weird characters
             pattern = rf'(\b.+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b.+?\b)'
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
@@ -205,7 +205,7 @@ def extract_info_from_json(json_file_path):
         try:
             if not text:
                 return None, None, None, None
-            text = clean_text(text)  
+            text = clean_text(text)  # Remove weird characters
             address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
@@ -230,8 +230,9 @@ def extract_info_from_json(json_file_path):
             if not text:
                 continue  
 
-            text = clean_text(text) 
+            text = clean_text(text)  # Remove weird characters globally
 
+            # Extract claimant (before "claim", remove anything after first comma)
             if "claim" in text.lower() and not claimant:
                 claimant_text = extract_company_name(text, "claim")
                 if claimant_text:
@@ -239,13 +240,15 @@ def extract_info_from_json(json_file_path):
                     if "Inc" in text:
                         claimant += ", Inc"
 
+            # Extract contractor (after "against", handle miswritten variations)
             match = re.search(r'against\s*([\w\s]+?)(?=,| for|$)', text, re.IGNORECASE)
             if match and not contractor:
                 contractor = match.group(1).strip()
-                contractor = contractor.replace("DLP", "").strip()  
-                contractor_address = extract_address(text) 
+                contractor = contractor.replace("DLP", "").strip()  # Remove "DLP" if it appears
+                contractor_address = extract_address(text)  # Get contractor's address
 
-            owner_match = re.search(r'owns\s*(.+?)\s*,', text, re.IGNORECASE)
+            # Extract owner (after "owned by", handle company name and address)
+            owner_match = re.search(r'owned by\s*([\w\s,]+?)(?=,)', text, re.IGNORECASE)
             if owner_match and not owner:
                 owner = owner_match.group(1).strip()
                 owner_address = extract_address(text)
@@ -254,9 +257,11 @@ def extract_info_from_json(json_file_path):
         print(f"Error processing elements: {e}")
 
     try:
+        # Fallback: If owner is missing, set to contractor
         if not owner:
             owner = contractor if contractor else "Not Found"
 
+        # Fallback: If owner's address is missing, set to contractor's address
         if not any(owner_address):  
             owner_address = contractor_address
 
