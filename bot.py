@@ -340,21 +340,18 @@ def extract_info_from_json(json_file_path):
                                 if any(owner_address):
                                     break
 
-        # **NEW LOGIC ADDED HERE**
-        # If owner address is still missing, search next blocks one by one
-        if owner and not any(owner_address):
+        if not any(owner_address):
             for idx, element in enumerate(elements):
                 text = element.get("Text", "")
                 if text and re.search(r'\b(owner|owners|owned by)\b', clean_text(text), re.IGNORECASE):  
-                    # Start searching from this block onwards
                     for next_idx in range(idx + 1, len(elements)):  
                         next_element = elements[next_idx]
                         next_text = next_element.get("Text", "")
                         if next_text:
                             extracted_address = extract_address(next_text)
-                            if any(extracted_address):  # If a valid address pattern is found
+                            if any(extracted_address):  
                                 owner_address = extracted_address
-                                break  # Stop searching once we find the address
+                                break  
 
     except Exception:
         pass
