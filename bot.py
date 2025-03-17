@@ -218,7 +218,11 @@ def extract_info_from_json(json_file_path):
 
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
-
+            
+            owner_address_match = re.search(r'owned\s*by\s*[\w\s&.,-]+,\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
+            if owner_address_match:
+                return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
+            
             flexible_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             matches = re.findall(flexible_pattern, text)
 
@@ -231,10 +235,6 @@ def extract_info_from_json(json_file_path):
                     
                     if city and state:
                         return street, city.strip(), state, zip_code
-
-            owner_address_match = re.search(r'owned\s*by\s*[\w\s&.,-]+,\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
-            if owner_address_match:
-                return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
 
         except Exception:
             pass
