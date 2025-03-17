@@ -180,54 +180,76 @@ def extract_address(json_file_path):
     return "No valid address found"  
 
 def extract_info_from_json(json_file_path):
-    """Extracts claimant, contractor, owner, and owner's address details from a JSON file."""
+    """Extracts claimant, contractor, owner, and owner's address details from a JSON file, with full error handling."""
 
     def extract_company_name(text, keyword, after=False):
-        """Extracts company name before or after a keyword."""
-        match = re.search(rf'(.+?)\s+{keyword}' if not after else rf'{keyword}\s+(.+)', text, re.IGNORECASE)
-        if match:
-            company_name = match.group(1).strip()
-            company_name = re.sub(r'[^\w\s,&.-]', '', company_name)  
-            return company_name
-        return None
+        """Extracts company name before or after a keyword, with error handling."""
+        try:
+            if not text:
+                return None
+            pattern = rf'(.+?)\s+{keyword}' if not after else rf'{keyword}\s+(.+)'
+            match = re.search(pattern, text, re.IGNORECASE)
+            return match.group(1).strip() if match and match.group(1) else None
+        except Exception as e:
+            print(f"Error extracting company name for keyword '{keyword}': {e}")
+            return None
 
     def extract_address(text):
-        """Extracts address, city, state, and zip code using regex."""
-        address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-        match = re.search(address_pattern, text)
-        if match:
-            return (
-                match.group(1),  
-                match.group(2),  
-                match.group(3),  
-                match.group(4) if match.group(4) else None  
-            )
+        """Extracts address, city, state, and zip code using regex, with error handling."""
+        try:
+            if not text:
+                return None, None, None, None
+            address_pattern = r'([\d]+[\w\s.,#-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            match = re.search(address_pattern, text)
+            if match:
+                return (
+                    match.group(1),  
+                    match.group(2),  
+                    match.group(3),  
+                    match.group(4) if match.group(4) else None  
+                )
+        except Exception as e:
+            print(f"Error extracting address: {e}")
         return None, None, None, None
 
-    with open(json_file_path, "r", encoding="utf-8") as f:
-        json_data = json.load(f)
+    try:
+        with open(json_file_path, "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+    except Exception as e:
+        print(f"Error reading JSON file: {e}")
+        return {}
 
     claimant, contractor, owner = None, None, None
     claimant_address, owner_address = (None, None, None, None), (None, None, None, None)
 
-    for element in json_data.get("elements", []):
-        text = element.get("Text", "")
+    try:
+        for element in json_data.get("elements", []):
+            text = element.get("Text", "")
+            if not text:
+                continue  
 
-        if "claim" in text and not claimant:
-            claimant = extract_company_name(text, "claim")
+            if "claim" in text and not claimant:
+                claimant = extract_company_name(text, "claim")
 
-        if "against" in text and not contractor:
-            contractor = extract_company_name(text, "against", after=True)
+            if "against" in text and not contractor:
+                contractor = extract_company_name(text, "against", after=True)
 
-        if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
-            owner = extract_company_name(text, r'owns|owner', after=True)
-            owner_address = extract_address(text)
+            if re.search(r'owns|owner', text, re.IGNORECASE) and not owner:
+                owner = extract_company_name(text, r'owns|owner', after=True)
+                owner_address = extract_address(text)
 
-    if not owner:
-        owner = contractor
-    
-    if not any(owner_address):
-        owner_address = claimant_address
+    except Exception as e:
+        print(f"Error processing elements: {e}")
+
+    try:
+        if not owner:
+            owner = contractor if contractor else "Not Found"
+
+        if not any(owner_address):  
+            owner_address = claimant_address
+
+    except Exception as e:
+        print(f"Error in fallback logic: {e}")
 
     return {
         "Claimant": claimant if claimant else "Not Found",
