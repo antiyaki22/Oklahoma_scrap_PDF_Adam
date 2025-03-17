@@ -376,10 +376,13 @@ def extract_info_from_json(json_file_path):
 
     print (f"owner address 0: {owner_address}")
     if not any(owner_address):
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         for element in elements:
             text = element.get("Text", "")
+            print (f"text: {text}")
             if text:
                 extracted_address = extract_address(clean_text(text))
+                print (f"extracted address: {extract_address}")
                 if any(extracted_address):
                     owner_address = extracted_address
                     break
