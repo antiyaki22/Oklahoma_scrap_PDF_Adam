@@ -380,7 +380,7 @@ def extract_info_from_json(json_file_path):
                         if 0 <= surrounding_idx < len(elements):
                             surrounding_text = elements[surrounding_idx].get("Text", "")
                             if surrounding_text:
-                                owner_address = handle_address_split(elements, surrounding_idx)
+                                owner_address = extract_address(surrounding_text)
                                 if any(owner_address):
                                     break
 
