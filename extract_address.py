@@ -8,24 +8,33 @@ def extract_address(text):
     try:
         if not text:
             return None, None, None, None
-        
+
+        text = re.sub(r'(\bowned\s*by)([A-Z])', r'\1 \2', text)  
         text = clean_text(text)
 
-        address_pattern = r'(\d+\s[\w\s.,#/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+        # Debug: Print cleaned text to verify
+        print(f"Cleaned text: {text}")  # Debug print
+
+        # Updated regex for more accurate street, city, state, zip extraction
+        address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Road|Rd|Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Court|Ct|Lane|Ln|Way|Pkwy)?)\s+([A-Za-z\s]+),\s*([A-Za-z]+(?:\s[A-Za-z]+)?)\s*(\d{5}(-\d{4})?)?'
 
         match = re.search(address_pattern, text)
         if match:
-            street = match.group(1)
-            city = match.group(3)
-            state = match.group(4)
-            zip_code = match.group(5) if match.group(5) else None
+            street = match.group(1).strip()
+            city = match.group(2).strip()
+            state = match.group(3).strip()
+            zip_code = match.group(4) if match.group(4) else None
+
+            # Debug: Show matched results
+            print(f"Match found: {street}, {city}, {state}, {zip_code}")
+
             return street, city, state, zip_code
 
-    except Exception:
-        pass
-    
+    except Exception as e:
+        print(f"Error in extract_address: {e}")
+
     return None, None, None, None
 
-# Test Case
-address = extract_address("Sect 31-T14N-R3W Qtr SW SUMMERRIDGE PHASE II Block 008 Lot 033 also know as 16705 Valderama Way Edmond, OK 73012")
-print(f"Address: {address}")
+# Example test
+address = extract_address("Deaundrey Green, Sr. Aylin Green 3208 S. Henney Rd. Choctaw, Oklahoma 73020 Subject Property: A")
+print(f"Extracted Address: {address}")
