@@ -337,7 +337,7 @@ def extract_info_from_json(json_file_path):
                     )
                     print (f"merged text: {merged_text}")
                     owner_address = extract_address(merged_text)
-
+                    
             if "owned" in text:
                 found_owner_section = False
 
