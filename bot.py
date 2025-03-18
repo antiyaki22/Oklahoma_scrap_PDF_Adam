@@ -229,6 +229,18 @@ def extract_info_from_json(json_file_path):
                     street, city, state, zip_code = match[0], match[2], match[3], match[4] if match[4] else None
                     if city and state:
                         return street, city.strip(), state, zip_code
+            new_address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Road|Rd|Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Court|Ct|Lane|Ln|Way|Pkwy)?)\s+([A-Za-z\s]+),\s*([A-Za-z]+(?:\s[A-Za-z]+)?)\s*(\d{5}(-\d{4})?)?'
+            match = re.search(new_address_pattern, text)
+            if match:
+                street = match.group(1).strip()
+                city = match.group(2).strip()
+                state = match.group(3).strip()
+                zip_code = match.group(4) if match.group(4) else None
+
+                print(f"Match found: {street}, {city}, {state}, {zip_code}")
+
+                return street, city, state, zip_code
+        
         except Exception as e:
             print(f"Error in extract_address: {e}")
         return None, None, None, None
