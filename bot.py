@@ -263,7 +263,7 @@ def extract_info_from_json(json_file_path):
                 continue
 
             text = clean_text(text)
-            text = re.sub(r'owned by([A-Z])', r'owned by \1', text)
+            text = re.sub(r'owned([A-Z])', r'owned \1', text)
 
             if "claim" in text.lower() and not claimant:
                 claimant_match = re.search(r'([\w\s&.,-]+?),?\s*has a claim', text, re.IGNORECASE)
@@ -350,7 +350,7 @@ def extract_info_from_json(json_file_path):
                 if not contractor:
                     contractor = extract_company_name(text, 'against')
                 if not owner:
-                    owner = extract_company_name(text, 'owned by')
+                    owner = extract_company_name(text, 'owned')
 
                 for prev_idx in range(idx - 1, idx - 4, -1):  
                     if 0 <= prev_idx < len(elements):
@@ -362,7 +362,7 @@ def extract_info_from_json(json_file_path):
                         if not contractor:
                             contractor = extract_company_name(prev_text, 'against')
                         if not owner:
-                            owner = extract_company_name(prev_text, 'owned by')
+                            owner = extract_company_name(prev_text, 'owned')
 
                 for next_idx in range(idx + 1, idx + 4): 
                     if 0 <= next_idx < len(elements):
@@ -374,7 +374,7 @@ def extract_info_from_json(json_file_path):
                         if not contractor:
                             contractor = extract_company_name(next_text, 'against')
                         if not owner:
-                            owner = extract_company_name(next_text, 'owned by')
+                            owner = extract_company_name(next_text, 'owned')
 
                 if owner and not any(owner_address):
                     for surrounding_idx in [idx - 1, idx + 1]:  
