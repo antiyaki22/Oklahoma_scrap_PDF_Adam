@@ -210,24 +210,23 @@ def extract_info_from_json(json_file_path):
             if not text:
                 return None, None, None, None
 
-            text = re.sub(r'(\bowned\s*by)([A-Z])', r'\1 \2', text)  
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s#.,/-]+?),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Street|Avenue)?)\s*,?\s*([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             match = re.search(address_pattern, text)
             if match:
                 return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
 
-            po_box_pattern = r'(PO BOX \d+)\s+([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-            po_box_match = re.search(po_box_pattern, text, re.IGNORECASE)
+            po_box_pattern = r'PO\s*BOX\s*(\d+)\s*([\w\s.,#/-]+?),?\s*([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            po_box_match = re.search(po_box_pattern, text)
             if po_box_match:
                 return po_box_match.group(1), po_box_match.group(2), po_box_match.group(3), po_box_match.group(4) if po_box_match.group(4) else None
 
-            owner_address_match = re.search(r'owned\s*by\s*[\w\s&.,-]+,\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
+            owner_address_match = re.search(r'owned\s*by\s*([\w\s&.,-]+?),\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
             if owner_address_match:
                 return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
 
-            flexible_pattern = r'(\d+\s[\w\s#.,/-]+?(Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             matches = re.findall(flexible_pattern, text)
             if matches:
                 for match in matches:
@@ -235,21 +234,8 @@ def extract_info_from_json(json_file_path):
                     if city and state:
                         return street, city.strip(), state, zip_code
 
-            new_address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Road|Rd|Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Court|Ct|Lane|Ln|Way|Pkwy)?)\s+([A-Za-z\s]+),\s*([A-Za-z]+(?:\s[A-Za-z]+)?)\s*(\d{5}(-\d{4})?)?'
-            match = re.search(new_address_pattern, text)
-            if match:
-                street = match.group(1).strip()
-                city = match.group(2).strip()
-                state = match.group(3).strip()
-                zip_code = match.group(4) if match.group(4) else None
-
-                print(f"Match found: {street}, {city}, {state}, {zip_code}")
-
-                return street, city, state, zip_code
-
         except Exception as e:
             print(f"Error in extract_address: {e}")
-
         return None, None, None, None
 
     try:
