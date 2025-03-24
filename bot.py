@@ -213,25 +213,34 @@ def extract_info_from_json(json_file_path):
 
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s.,#/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Street|Avenue)?)\s*,?\s*([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-            match = re.search(address_pattern, text)
-            if match:
-                return match.group(1), match.group(2), match.group(3), match.group(4) if match.group(4) else None
+            address_pattern = r'(\d+\s[\w\s.,#/-]+?(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Street|Avenue|Building\s*\d+))'
 
-            po_box_pattern = r'PO\s*BOX\s*(\d+)\s*([\w\s.,#/-]+?),?\s*([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            city_state_zip_pattern = r'([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+            address_match = re.search(address_pattern, text)
+            city_state_zip_match = re.search(city_state_zip_pattern, text)
+
+            address = address_match.group(1) if address_match else None
+            city, state, zipcode = None, None, None
+
+            if city_state_zip_match:
+                city = city_state_zip_match.group(1).strip()
+                state = city_state_zip_match.group(2)
+                zipcode = city_state_zip_match.group(3) if city_state_zip_match.group(3) else None
+
+            if address and city and state:
+                return address, city, state, zipcode
+
+            po_box_pattern = r'PO\s*BOX\s*(\d+),?\s*([\w\s.,#/-]+?),?\s*([A-Za-z\s]+?),?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             po_box_match = re.search(po_box_pattern, text)
             if po_box_match:
-                return po_box_match.group(1), po_box_match.group(2), po_box_match.group(3), po_box_match.group(4) if po_box_match.group(4) else None
-
-            owner_address_match = re.search(r'owned\s*by\s*([\w\s&.,-]+?),\s*([\d\w\s#.-]+),\s*([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?', text, re.IGNORECASE)
-            if owner_address_match:
-                return owner_address_match.group(1), owner_address_match.group(2), owner_address_match.group(3), owner_address_match.group(4) if owner_address_match.group(4) else None
+                return po_box_match.group(1), po_box_match.group(3), po_box_match.group(4), po_box_match.group(5) if po_box_match.group(5) else None
 
             flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             matches = re.findall(flexible_pattern, text)
             if matches:
                 for match in matches:
-                    street, city, state, zip_code = match[0], match[2], match[3], match[4] if match[4] else None
+                    street, city, state, zip_code = match[0], match[1], match[2], match[3] if match[3] else None
                     if city and state:
                         return street, city.strip(), state, zip_code
 
