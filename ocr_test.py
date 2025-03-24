@@ -2,6 +2,7 @@ import zipfile
 import os
 from datetime import datetime
 from sdk.extract_text_info_from_pdf import ExtractTextInfoFromPDF
+from sdk.extract_text_info_with_char_bounds_from_pdf import ExtractTextInfoWithCharBoundsFromPDF
 import json
 import re
 import fitz
@@ -65,26 +66,25 @@ if __name__ == "__main__":
     input_pdf_path = "downloads/ocr_test.pdf"
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
 
-    remove_watermark("UNOFFICIAL", "downloads/ocr_test.pdf", "again.pdf")
+    # remove_watermark("UNOFFICIAL", "downloads/ocr_test.pdf", "again.pdf")
 
     # ExtractTextInfoFromPDF(input_pdf_path)
+    ExtractTextInfoWithCharBoundsFromPDF(input_pdf_path)
     
-    # output_folder = "output/ExtractTextInfoFromPDF"
-    # time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    # zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
+    output_folder = "output/ExtractTextInfoWithCharBoundsFromPDF"
+    time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
         
-    # unzip_file(zip_file_path, output_folder)
-    # remove_zip_file(zip_file_path)
+    unzip_file(zip_file_path, output_folder)
+    remove_zip_file(zip_file_path)
 
-    # output_folder = "output/ExtractTextInfoFromPDF"    
+    json_file_path = f"{output_folder}/structuredData.json"
+    renamed_json_path = f"{output_folder}/{pdf_filename}.json"
 
-    # json_file_path = f"{output_folder}/structuredData.json"
-    # renamed_json_path = f"{output_folder}/{pdf_filename}.json"
-
-    # os.rename(json_file_path, renamed_json_path)    
-    # largest_value = extract_largest_dollar_amount(renamed_json_path)
+    os.rename(json_file_path, renamed_json_path)    
+    largest_value = extract_largest_dollar_amount(renamed_json_path)
     
-    # if largest_value is not None:
-    #     print(f"Largest dollar amount: ${largest_value}")
-    # else:
-    #     print("No dollar amounts found.")
+    if largest_value is not None:
+        print(f"Largest dollar amount: ${largest_value}")
+    else:
+        print("No dollar amounts found.")

@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 import subprocess
 from sdk.extract_text_info_from_pdf import ExtractTextInfoFromPDF
+from sdk.extract_text_info_with_char_bounds_from_pdf import ExtractTextInfoWithCharBoundsFromPDF
 import json
 import spacy
 import zipfile
@@ -249,6 +250,7 @@ def extract_info_from_json(json_file_path):
     claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
 
     try:
+        full_text = " ".join(block["Text"] for block in json_data if "Text" in block)
         elements = json_data.get("elements", [])
         for idx, element in enumerate(elements):
             text = element.get("Text", "")
@@ -528,9 +530,9 @@ def remove_watermark(wm_text, inputFile, outputFile):
 async def process_pdf(docid: str) -> tuple:
     input_pdf_path = f"downloads/{docid}.pdf"
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
-    ExtractTextInfoFromPDF(input_pdf_path)
+    ExtractTextInfoWithCharBoundsFromPDF(input_pdf_path)
     
-    output_folder = "output/ExtractTextInfoFromPDF"
+    output_folder = "output/ExtractTextInfoWithCharBoundsFromPDF"
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
         
@@ -620,7 +622,7 @@ async def main():
     clear_csv_file()
 
     download_path = os.path.join(os.getcwd(), 'downloads')
-    output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoFromPDF')
+    output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoWithCharBoundsFromPDF')
     os.makedirs(download_path, exist_ok=True)
     clear_downloads_output_folder(download_path, output_path)
 
