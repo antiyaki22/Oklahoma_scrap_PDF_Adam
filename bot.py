@@ -217,20 +217,20 @@ def extract_info_from_json(json_file_path):
 
             city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
-            po_box_pattern = r'(PO\s*BOX\s*\d+),?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+            po_box_pattern = r'(PO\s*BOX\s*\d+)\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
-            address_match = re.search(address_pattern, text)
             po_box_match = re.search(po_box_pattern, text)
-            address = address_match.group(1) if address_match else None
-            city, state, zipcode = None, None, None
-
             if po_box_match:
                 return (
                     po_box_match.group(1), 
                     po_box_match.group(2).strip(),  
                     po_box_match.group(3),  
-                    po_box_match.group(4) if po_box_match.group(4) else None,
+                    po_box_match.group(4) if po_box_match.group(4) else None, 
                 )
+
+            address_match = re.search(address_pattern, text)
+            address = address_match.group(1) if address_match else None
+            city, state, zipcode = None, None, None
 
             if address:
                 remaining_text = text[text.index(address) + len(address):]
