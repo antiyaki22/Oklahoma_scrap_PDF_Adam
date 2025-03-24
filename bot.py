@@ -213,7 +213,7 @@ def extract_info_from_json(json_file_path):
 
             text = clean_text(text)
 
-            address_pattern = r'(\d+\s[\w\s.,#/-]+?(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Street|Avenue|Building\s*\d+))'
+            address_pattern = r'(\d+\s[\w\s.,#/-]+?(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
 
             city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
