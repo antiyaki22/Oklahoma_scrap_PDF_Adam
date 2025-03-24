@@ -213,13 +213,24 @@ def extract_info_from_json(json_file_path):
 
             text = clean_text(text)
 
-            address_pattern = r'(PO\s*BOX\s*\d+|\d+\s[\w\s.,#/-]+?(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
+            address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
 
             city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
+            po_box_pattern = r'(PO\s*BOX\s*\d+),?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
             address_match = re.search(address_pattern, text)
+            po_box_match = re.search(po_box_pattern, text)
             address = address_match.group(1) if address_match else None
             city, state, zipcode = None, None, None
+
+            if po_box_match:
+                return (
+                    po_box_match.group(1), 
+                    po_box_match.group(2).strip(),  
+                    po_box_match.group(3),  
+                    po_box_match.group(4) if po_box_match.group(4) else None,
+                )
 
             if address:
                 remaining_text = text[text.index(address) + len(address):]
@@ -232,11 +243,6 @@ def extract_info_from_json(json_file_path):
 
             if address and city and state:
                 return address, city, state, zipcode
-
-            po_box_pattern = r'(PO\s*BOX\s*\d+)\s+([A-Za-z\s]+),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-            po_box_match = re.search(po_box_pattern, text)
-            if po_box_match:
-                return po_box_match.group(1), po_box_match.group(2).strip(), po_box_match.group(3), po_box_match.group(4) if po_box_match.group(4) else None
 
             flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
             matches = re.findall(flexible_pattern, text)
