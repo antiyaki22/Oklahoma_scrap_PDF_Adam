@@ -219,15 +219,17 @@ def extract_info_from_json(json_file_path):
 
             po_box_pattern = r'(PO\s*BOX\s*\d+)\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
 
+            # Check if PO BOX exists first
             po_box_match = re.search(po_box_pattern, text)
             if po_box_match:
                 return (
-                    po_box_match.group(1), 
-                    po_box_match.group(2).strip(),  
-                    po_box_match.group(3),  
-                    po_box_match.group(4) if po_box_match.group(4) else None, 
+                    po_box_match.group(1),  
+                    po_box_match.group(2).strip(), 
+                    po_box_match.group(3), 
+                    po_box_match.group(4) if po_box_match.group(4) else None,  
                 )
 
+            # Extract address
             address_match = re.search(address_pattern, text)
             address = address_match.group(1) if address_match else None
             city, state, zipcode = None, None, None
