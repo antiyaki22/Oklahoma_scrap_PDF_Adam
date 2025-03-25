@@ -183,34 +183,37 @@ def extract_info_from_json(json_file_path):
             if not text:
                 return None, None, None, None
 
-            text = clean_text(text)
+            text = clean_text(text)  
 
-            parsed_addresses = usaddress.parse(text)
-            
-            address, city, state, zipcode = "", "", "", ""
+            tagged_address, address_type = usaddress.tag(text)
 
-            temp_address = []
-            found_city = False
+            address = []
+            city = tagged_address.get("PlaceName", "")
+            state = tagged_address.get("StateName", "")
+            zipcode = tagged_address.get("ZipCode", "")
 
-            for component, label in parsed_addresses:
-                if label in ["AddressNumber", "StreetName", "StreetNamePostType", "OccupancyType", "OccupancyIdentifier"]:
-                    temp_address.append(component)
-                elif label == "PlaceName" and not found_city:
-                    city = component
-                    found_city = True  
-                elif label == "StateName":
-                    state = component
-                elif label == "ZipCode":
-                    zipcode = component
+            for key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
+                        "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
+                        "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
+                if key in tagged_address:
+                    address.append(tagged_address[key])
 
-            address = " ".join(temp_address).strip()
+            address = " ".join(address).strip()
 
             if not address and state and zipcode:
                 address, city = None, None
 
+            city_match = re.search(r"City of ([A-Za-z\s]+)", text)
+            if city_match:
+                city = city_match.group(1).strip()
+
+            state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
+            if state_match and not state:
+                state = state_match.group(2).strip()
+
             return address, city, state, zipcode
 
-        except Exception as e:
+        except usaddress.RepeatedLabelError as e:
             print(f"Error in extract_address_with_usaddress: {e}")
             return None, None, None, None
         
