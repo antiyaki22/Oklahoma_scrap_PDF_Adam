@@ -10,6 +10,7 @@ import json
 import spacy
 import zipfile
 import usaddress
+import phonenumbers
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.okcc.online/index.php"
@@ -21,6 +22,15 @@ TABLE_CELL_SELECTOR = "td"
 
 nlp = spacy.load("en_core_web_sm")
 months = 3
+
+def extract_company_name(text):
+    doc = nlp(text)
+    company_names = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "COMPANY"]]
+    return company_names[0] if company_names else None
+
+def extract_phone_number(text):
+    numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
+    return numbers[0] if numbers else None
 
 def ensure_playwright_browsers():
     try:
@@ -161,259 +171,146 @@ def extract_phone_number(json_file_path):
 
     return "No valid phone number found"
 
-def extract_info_from_json(json_file_path):
-    def clean_text(text):
-        return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
-
-    def extract_company_name(text, keyword, after=False):
-        try:
-            if not text:
-                return None
-            text = clean_text(text)
-            pattern = rf'(\b[\w\s&.,-]+?\b)\s*{keyword}' if not after else rf'{keyword}\s*(\b[\w\s&.,-]+?\b)'
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                return match.group(1).strip().rstrip(',')
-        except Exception as e:
-            print(f"Error in extract_company_name: {e}")
-        return None
-
-    def extract_address(text):
-        try:
-            if not text:
-                return None, None, None, None
-
-            text = clean_text(text)  
-
-            tagged_address, address_type = usaddress.tag(text)
-
-            address = []
-            city = tagged_address.get("PlaceName", "")
-            state = tagged_address.get("StateName", "")
-            zipcode = tagged_address.get("ZipCode", "")
-
-            for key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
-                        "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
-                        "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
-                if key in tagged_address:
-                    address.append(tagged_address[key])
-
-            address = " ".join(address).strip()
-
-            if not address and state and zipcode:
-                address, city = None, None
-
-            city_match = re.search(r"City of ([A-Za-z\s]+)", text)
-            if city_match:
-                city = city_match.group(1).strip()
-
-            state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
-            if state_match and not state:
-                state = state_match.group(2).strip()
-
-            return address, city, state, zipcode
-
-        except usaddress.RepeatedLabelError as e:
-            print(f"Error in extract_address_with_usaddress: {e}")
+def extract_address(text):
+    try:
+        if not text:
             return None, None, None, None
         
+        def clean_text(text):
+            return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
+        
+        text = clean_text(text)  
+        tagged_address, address_type = usaddress.tag(text)
+
+        address = []
+        city = tagged_address.get("PlaceName", "")
+        state = tagged_address.get("StateName", "")
+        zipcode = tagged_address.get("ZipCode", "")
+
+        for key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
+                    "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
+                    "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
+            if key in tagged_address:
+                address.append(tagged_address[key])
+
+        address = " ".join(address).strip()
+
+        if not address and state and zipcode:
+            address, city = None, None
+
+        city_match = re.search(r"City of ([A-Za-z\s]+)", text)
+        if city_match:
+            city = city_match.group(1).strip()
+
+        state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
+        if state_match and not state:
+            state = state_match.group(2).strip()
+
+        return address, city, state, zipcode
+
+    except usaddress.RepeatedLabelError as e:
+        print(f"Error in extract_address_with_usaddress: {e}")
+        return None, None, None, None
+        
+def parse_json_data(json_file_path) -> str:
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
     except Exception as e:
         print(f"Error reading JSON file: {e}")
         return {}
-
-    claimant, contractor, owner = None, None, None
-    claimant_address, owner_address, contractor_address = (None, None, None, None), (None, None, None, None), (None, None, None, None)
-
-    try:
+    
+    if json_data:
         full_text = " ".join(block["Text"] for block in json_data if "Text" in block)
-        elements = json_data.get("elements", [])
-        for idx, element in enumerate(elements):
-            text = element.get("Text", "")
-            if not text:
-                continue
+    else:
+        full_text = " "
 
-            text = clean_text(text)
-            text = re.sub(r'owned([A-Z])', r'owned \1', text)
+    return full_text
 
-            if "claim" in text.lower() and not claimant:
-                claimant_match = re.search(r'([\w\s&.,-]+?),?\s*has a claim', text, re.IGNORECASE)
-                if claimant_match:
-                    claimant = claimant_match.group(1).strip()
+def get_claimant(text):
+    claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
+    if claimant_match:
+        claimant_text = claimant_match.group(1)
+        claimant_name = extract_company_name(claimant_text)
+        if claimant_name:
+            return claimant_name
 
-            if claimant and not any(claimant_address):
-                claimant_address = extract_address(text)
+    claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
+    if claims_match:
+        claimant_text = claims_match.group(1)
+        claimant_name = extract_company_name(claimant_text)
+        if claimant_name:
+            return claimant_name
 
-            contractor_match = re.search(r'against\s*([\w\s&.,-]+?),', text, re.IGNORECASE)
-            if contractor_match and not contractor:
-                contractor = contractor_match.group(1).strip()
+    return None
 
-            if contractor and not any(contractor_address):
-                contractor_address = extract_address(text)
+def get_contractor(text):
+    contractor_match = re.search(r'(?:Contractor|Customer):\s*(.*)', text, re.IGNORECASE)
+    if contractor_match:
+        contractor_text = contractor_match.group(1)
+        contractor_name = extract_company_name(contractor_text)
+        if contractor_name:
+            return contractor_name
 
-            owner_match = re.search(r'owned\s*by\s*([\w\s&.,-]+?)(?=,|\s+at|$)', text, re.IGNORECASE)
-            if owner_match and not owner:
-                owner = owner_match.group(1).strip()
+    contractor_match = re.search(r'\b(?:claims|against|upon)\b\s*(.*)', text, re.IGNORECASE)
+    if contractor_match:
+        contractor_text = contractor_match.group(1)
+        contractor_name = extract_company_name(contractor_text)
+        if contractor_name:
+            return contractor_name
 
-            if owner:
-                owner_address_match = re.search(r'owned\s*by\s*' + re.escape(owner) + r'\s*,\s*([\d\w\s,.#-]+?)$', text, re.IGNORECASE)
-                if owner_address_match:
-                    owner_address = extract_address(owner_address_match.group(1))
+    return None
 
-        for idx, element in enumerate(elements):
-            text = element.get("Text", "")
-            if not text:
-                continue
+def get_owner(text):
+    owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
+    if owner_match:
+        owner_text = owner_match.group(1)
+        owner_name = extract_company_name(owner_text)
+        if owner_name:
+            return owner_name
 
-            text = clean_text(text)
+    owned_match = re.search(r'(.+)\b(owned|owned by)\b', text, re.IGNORECASE)
+    if owned_match:
+        owner_text = owned_match.group(1)
+        owner_name = extract_company_name(owner_text)
+        if owner_name:
+            return owner_name
 
-            if "Claimant:" in text and not claimant:
-                claimant_match = re.search(r'Claimant:\s*([\w\s&.,-]+)', text, re.IGNORECASE)
-                if claimant_match:
-                    claimant = claimant_match.group(1).strip()
+    return None
 
-            if "Customer:" in text and not contractor:
-                for next_idx in range(idx + 1, idx + 2): 
-                    if 0 <= next_idx < len(elements):
-                        next_element = elements[next_idx]
-                        next_text = next_element.get("Text", "")
-                        if next_text:
-                            contractor = clean_text(next_text)
+def get_owner_address(text):
+    owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
+    if owner_match:
+        owner_text = owner_match.group(1)
+        address, city, state, zip = extract_address(owner_text)
+        if address or city or state or zip:
+            return address, city, state, zip
 
-            if "Owners:" in text:
-                found_owner_section = False
+    owned_match = re.search(r'(.+)\b(owned|owned by)\b', text, re.IGNORECASE)
+    if owned_match:
+        owner_text = owned_match.group(1)
+        address, city, state, zip = extract_address(owner_text)
+        if address or city or state or zip:
+            return address, city, state, zip
 
-                for next_idx in range(idx + 1, idx + 5):  
-                    if 0 <= next_idx < len(elements):
-                        next_element = elements[next_idx]
-                        next_text = next_element.get("Text", "")
-                        next_text = clean_text(next_text)
+    return None
 
-                        if not owner and next_text:
-                            owner = next_text
-                            found_owner_section = True
-                            continue
+def get_claimant_phone(text):
+    claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
+    if claimant_match:
+        claimant_text = claimant_match.group(1)
+        phone = extract_phone_number(claimant_text)
+        if phone:
+            return phone
 
-                        if owner and found_owner_section and not any(owner_address):
-                            extracted_address = extract_address(next_text)
-                            if any(extracted_address):
-                                owner_address = extracted_address
-                                break
+    claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
+    if claims_match:
+        claimant_text = claims_match.group(1)
+        phone = extract_phone_number(claimant_text)
+        if phone:
+            return phone
 
-                if not any(owner_address):
-                    merged_text = " ".join(
-                        clean_text(elements[i].get("Text", "")) 
-                        for i in range(idx + 1, min(idx + 16, len(elements)))
-                        if elements[i].get("Text", "").strip()
-                    )
-                    print (f"merged text: {merged_text}")
-                    owner_address = extract_address(merged_text)
-                    
-            if "owned" in text:
-                found_owner_section = False
-
-                for next_idx in range(idx + 1, idx + 5):  
-                    if 0 <= next_idx < len(elements):
-                        next_element = elements[next_idx]
-                        next_text = next_element.get("Text", "")
-                        next_text = clean_text(next_text)
-
-                        if not owner and next_text:
-                            owner = next_text
-                            found_owner_section = True
-                            continue
-
-                        if owner and found_owner_section and not any(owner_address):
-                            extracted_address = extract_address(next_text)
-                            if any(extracted_address):
-                                owner_address = extracted_address
-                                break
-
-                if not any(owner_address):
-                    merged_text = " ".join(
-                        clean_text(elements[i].get("Text", "")) 
-                        for i in range(idx + 1, min(idx + 16, len(elements)))
-                        if elements[i].get("Text", "").strip()
-                    )
-                    print (f"merged text: {merged_text}")
-                    owner_address = extract_address(merged_text)
-
-        if not claimant or not contractor or not owner:
-            for idx, element in enumerate(elements):
-                text = element.get("Text", "")
-                if not text:
-                    continue
-
-                text = clean_text(text)
-                if not claimant:
-                    claimant = extract_company_name(text, 'claim')
-                if not contractor:
-                    contractor = extract_company_name(text, 'against')
-                if not owner:
-                    owner = extract_company_name(text, 'owned')
-
-                for prev_idx in range(idx - 1, idx - 4, -1):  
-                    if 0 <= prev_idx < len(elements):
-                        prev_element = elements[prev_idx]
-                        prev_text = prev_element.get("Text", "")
-                        prev_text = clean_text(prev_text)
-                        if not claimant:
-                            claimant = extract_company_name(prev_text, 'claim')
-                        if not contractor:
-                            contractor = extract_company_name(prev_text, 'against')
-                        if not owner:
-                            owner = extract_company_name(prev_text, 'owned')
-
-                for next_idx in range(idx + 1, idx + 4): 
-                    if 0 <= next_idx < len(elements):
-                        next_element = elements[next_idx]
-                        next_text = next_element.get("Text", "")
-                        next_text = clean_text(next_text)
-                        if not claimant:
-                            claimant = extract_company_name(next_text, 'claim')
-                        if not contractor:
-                            contractor = extract_company_name(next_text, 'against')
-                        if not owner:
-                            owner = extract_company_name(next_text, 'owned')
-
-                if owner and not any(owner_address):
-                    for surrounding_idx in [idx - 1, idx + 1]:  
-                        if 0 <= surrounding_idx < len(elements):
-                            surrounding_text = elements[surrounding_idx].get("Text", "")
-                            if surrounding_text:
-                                owner_address = extract_address(surrounding_text)
-                                if any(owner_address):
-                                    break
-
-        if not any(owner_address):
-            owner_address = contractor_address
-        if not any(owner_address):
-            owner_address = claimant_address
-        if not any(owner_address):
-            for element in elements:
-                text = element.get("Text", "")
-                if text:
-                    combined_text = ' '.join([e.get("Text", "") for e in elements[idx-1:idx+2]])  
-                    extracted_address = extract_address(clean_text(combined_text))
-                    if any(extracted_address):
-                        owner_address = extracted_address
-                        break
-
-    except Exception as e:
-        print(f"Error during extraction: {e}")
-        return {}
-
-    return {
-        "Claimant": claimant if claimant else "Not Found",
-        "Contractor": contractor if contractor else "Not Found",
-        "Owner": owner if owner else "Not Found",
-        "Address": owner_address[0] if owner_address[0] else "Not Found",
-        "City": owner_address[1] if owner_address[1] else "Not Found",
-        "State": owner_address[2] if owner_address[2] else "Not Found",
-        "Zipcode": owner_address[3] if owner_address[3] else "Not Found"
-    }
+    return None
 
 def unzip_file(zip_file_path, output_folder):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
@@ -522,11 +419,26 @@ async def process_pdf(docid: str) -> tuple:
 
     os.rename(json_file_path, renamed_json_path)    
 
-    info = extract_info_from_json(renamed_json_path)
+    full_text = parse_json_data(renamed_json_path)
+
+    claimant = get_claimant(full_text)
+    contractor = get_contractor(full_text)
+    owner = get_owner(full_text)
+    address, city, state, zipcode = get_owner_address(full_text)
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
-    phone_number = extract_phone_number(renamed_json_path)
-    info["Dollar"] = dollar_amount
-    info["Phone"] = phone_number
+    phone_number = get_claimant_phone(full_text)
+
+    info: dict[str, any] = {
+        "claimant": claimant,
+        "contractor": contractor,
+        "owner": owner,
+        "address": address,
+        "city": city,
+        "state": state,
+        "zipcode": zipcode,
+        "dollar": dollar_amount,
+        "phone": phone_number,
+    }
 
     print (f"info: {info}")
     return info
@@ -568,18 +480,17 @@ async def scrape_table(page, headers):
 
             info = await process_pdf(docid=doc_id)
             if cell_values[6] == "N/A":
-                cell_values[6] = info["Claimant"]
+                cell_values[6] = info["claimant"]
             if cell_values[7] == "N/A":
-                cell_values[7] = info["Contractor"]
+                cell_values[7] = info["contractor"]
             if cell_values[8] == "N/A":
-                cell_values[8] = info["Owner"]
-            cell_values[9] = info["Address"]
-            cell_values.append(info["City"])
-            cell_values.append(info["State"])
-            cell_values.append(info["Zipcode"])
-            cell_values.append(info["Dollar"])
-            cell_values.append(info["Phone"])
-            print (f"cell values 1: ", cell_values)
+                cell_values[8] = info["owner"]
+            cell_values[9] = info["address"]
+            cell_values.append(info["city"])
+            cell_values.append(info["state"])
+            cell_values.append(info["zipcode"])
+            cell_values.append(info["dollar"])
+            cell_values.append(info["phone"])
 
         save_to_csv([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
