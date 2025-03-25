@@ -9,6 +9,7 @@ from sdk.extract_text_info_with_char_bounds_from_pdf import ExtractTextInfoWithC
 import json
 import spacy
 import zipfile
+import usaddress
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.okcc.online/index.php"
@@ -160,35 +161,6 @@ def extract_phone_number(json_file_path):
 
     return "No valid phone number found"
 
-def extract_address(json_file_path):
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-
-    patterns = [
-        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+,\s?[A-Za-z]{2}\s?\d{5}(-\d{4})?",  
-        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+,\s?\d{5}(-\d{4})?", 
-        r"\d{1,5}\s\w+(\s\w+)*,\s?[A-Za-z\s]+", 
-        r"[A-Za-z\s]+,\s?[A-Za-z]{2}\s?\d{5}(-\d{4})?",
-    ]
-
-    all_addresses = []
-
-    for element in data.get("elements", []):
-        text = element.get("Text", "")
-
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                return match.group(0)  
-
-        if any(keyword in text.lower() for keyword in ["street", "st.", "road", "rd.", "avenue", "ave.", "blvd", "lane", "ln.", "drive", "dr.", "city", "state", "zip"]):
-            all_addresses.append(text)
-
-    if all_addresses:
-        return max(all_addresses, key=len)
-
-    return "No valid address found"  
-
 def extract_info_from_json(json_file_path):
     def clean_text(text):
         return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
@@ -212,51 +184,67 @@ def extract_info_from_json(json_file_path):
                 return None, None, None, None
 
             text = clean_text(text)
+            parsed_address, address_type = usaddress.tag(text)
+            address = parsed_address.get('AddressNumber', '') + ' ' + parsed_address.get('StreetName', '')
+            city = parsed_address.get('PlaceName', '')
+            state = parsed_address.get('StateName', '')
+            zipcode = parsed_address.get('ZipCode', '')
 
-            address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
-
-            city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-
-            po_box_pattern = r'(PO\s*BOX\s*\d+)\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-
-            # Check if PO BOX exists first
-            po_box_match = re.search(po_box_pattern, text)
-            if po_box_match:
-                return (
-                    po_box_match.group(1),  
-                    po_box_match.group(2).strip(), 
-                    po_box_match.group(3), 
-                    po_box_match.group(4) if po_box_match.group(4) else None,  
-                )
-
-            # Extract address
-            address_match = re.search(address_pattern, text)
-            address = address_match.group(1) if address_match else None
-            city, state, zipcode = None, None, None
-
-            if address:
-                remaining_text = text[text.index(address) + len(address):]
-                city_state_zip_match = re.search(city_state_zip_pattern, remaining_text)
-
-                if city_state_zip_match:
-                    city = city_state_zip_match.group(1).strip()
-                    state = city_state_zip_match.group(2)
-                    zipcode = city_state_zip_match.group(3) if city_state_zip_match.group(3) else None
-
-            if address and city and state:
-                return address, city, state, zipcode
-
-            flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-            matches = re.findall(flexible_pattern, text)
-            if matches:
-                for match in matches:
-                    street, city, state, zip_code = match[0], match[1], match[2], match[3] if match[3] else None
-                    if city and state:
-                        return street, city.strip(), state, zip_code
+            return address.strip(), city.strip(), state.strip(), zipcode.strip()
 
         except Exception as e:
-            print(f"Error in extract_address: {e}")
+            print(f"Error in extract_address_with_usaddress: {e}")
         return None, None, None, None
+        # try:
+        #     if not text:
+        #         return None, None, None, None
+
+        #     text = clean_text(text)
+
+        #     address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
+
+        #     city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+        #     po_box_pattern = r'(PO\s*BOX\s*\d+)\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+
+        #     # Check if PO BOX exists first
+        #     po_box_match = re.search(po_box_pattern, text)
+        #     if po_box_match:
+        #         return (
+        #             po_box_match.group(1),  
+        #             po_box_match.group(2).strip(), 
+        #             po_box_match.group(3), 
+        #             po_box_match.group(4) if po_box_match.group(4) else None,  
+        #         )
+
+        #     # Extract address
+        #     address_match = re.search(address_pattern, text)
+        #     address = address_match.group(1) if address_match else None
+        #     city, state, zipcode = None, None, None
+
+        #     if address:
+        #         remaining_text = text[text.index(address) + len(address):]
+        #         city_state_zip_match = re.search(city_state_zip_pattern, remaining_text)
+
+        #         if city_state_zip_match:
+        #             city = city_state_zip_match.group(1).strip()
+        #             state = city_state_zip_match.group(2)
+        #             zipcode = city_state_zip_match.group(3) if city_state_zip_match.group(3) else None
+
+        #     if address and city and state:
+        #         return address, city, state, zipcode
+
+        #     flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
+        #     matches = re.findall(flexible_pattern, text)
+        #     if matches:
+        #         for match in matches:
+        #             street, city, state, zip_code = match[0], match[1], match[2], match[3] if match[3] else None
+        #             if city and state:
+        #                 return street, city.strip(), state, zip_code
+
+        # except Exception as e:
+        #     print(f"Error in extract_address: {e}")
+        # return None, None, None, None
 
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
