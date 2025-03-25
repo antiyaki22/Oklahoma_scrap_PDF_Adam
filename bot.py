@@ -179,35 +179,36 @@ def extract_address(text):
         def clean_text(text):
             return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
         
-        text = clean_text(text)  
-        tagged_address, address_type = usaddress.tag(text)
+        text = clean_text(text)
 
-        if address_type == "Ambiguous":
-            print(f"Ambiguous address found: {text}")
-            return None, None, None, None
-        
-        address = []
-        city = tagged_address.get("PlaceName", "")
-        state = tagged_address.get("StateName", "")
-        zipcode = tagged_address.get("ZipCode", "")
+        try:
+            tagged_address, address_type = usaddress.tag(text)
+        except usaddress.RepeatedLabelError:
+            return None, None, None, None  
 
-        address_parts = [
-            "AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
-            "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
-            "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"
-        ]
-        
-        for key in address_parts:
-            if key in tagged_address and tagged_address[key] not in address:
-                address.append(tagged_address[key])
+        address_parts = []
+        city, state, zipcode = None, None, None
 
-        address = " ".join(address).strip()
+        for key, value in tagged_address.items():
+            if key == "PlaceName" and not city:
+                city = value
+            elif key == "StateName" and not state:
+                state = value
+            elif key == "ZipCode" and not zipcode:
+                zipcode = value
+            elif key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
+                         "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
+                         "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
+                if value not in address_parts:  
+                    address_parts.append(value)
+
+        address = " ".join(address_parts).strip()
 
         if not address and state and zipcode:
             address, city = None, None
 
         city_match = re.search(r"City of ([A-Za-z\s]+)", text)
-        if city_match:
+        if city_match and not city:
             city = city_match.group(1).strip()
 
         state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
@@ -216,8 +217,8 @@ def extract_address(text):
 
         return address, city, state, zipcode
 
-    except usaddress.RepeatedLabelError as e:
-        print(f"Error in extract_address_with_usaddress: {e}")
+    except Exception as e:
+        print(f"Error in extract_address: {e}")
         return None, None, None, None
         
 def get_merged_text(file_path: str) -> str:
