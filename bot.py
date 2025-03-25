@@ -216,16 +216,16 @@ def parse_json_data(json_file_path) -> str:
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
+
+            if json_data:
+                full_text = " ".join(block["Text"] for block in json_data if "Text" in block)
+                return full_text
+
     except Exception as e:
         print(f"Error reading JSON file: {e}")
         return {}
     
-    if json_data:
-        full_text = " ".join(block["Text"] for block in json_data if "Text" in block)
-    else:
-        full_text = " "
-
-    return full_text
+    return " "
 
 def get_claimant(text):
     claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
