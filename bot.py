@@ -212,7 +212,7 @@ def extract_address(text):
         print(f"Error in extract_address_with_usaddress: {e}")
         return None, None, None, None
         
-def get_merged_text_from_file(file_path: str) -> str:
+def get_merged_text(file_path: str) -> str:
     with open(file_path, 'r') as file:
         json_data = json.load(file)
 
