@@ -241,6 +241,7 @@ def get_claimant(text):
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
+    print (f"claimant: {claimant_match}")
 
     return None
 
@@ -420,6 +421,7 @@ async def process_pdf(docid: str) -> tuple:
     os.rename(json_file_path, renamed_json_path)    
 
     full_text = parse_json_data(renamed_json_path)
+    print (f"full text: {full_text}")
 
     claimant = get_claimant(full_text)
     contractor = get_contractor(full_text)
