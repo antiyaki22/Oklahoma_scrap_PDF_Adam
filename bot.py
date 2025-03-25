@@ -212,20 +212,12 @@ def extract_address(text):
         print(f"Error in extract_address_with_usaddress: {e}")
         return None, None, None, None
         
-def parse_json_data(json_file_path) -> str:
-    try:
-        with open(json_file_path, "r", encoding="utf-8") as f:
-            json_data = json.load(f)
-
-            if json_data:
-                full_text = " ".join(block["Text"] for block in json_data if "Text" in block)
-                return full_text
-
-    except Exception as e:
-        print(f"Error reading JSON file: {e}")
-        return {}
-    
-    return " "
+def get_merged_text(json_data):
+    merged_text = ""
+    for element in json_data.get("elements", []):
+        if "Text" in element:
+            merged_text += element["Text"] + " "
+    return merged_text.strip()
 
 def get_claimant(text):
     claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
@@ -420,7 +412,7 @@ async def process_pdf(docid: str) -> tuple:
 
     os.rename(json_file_path, renamed_json_path)    
 
-    full_text = parse_json_data(renamed_json_path)
+    full_text = get_merged_text(renamed_json_path)
     print (f"full text: {full_text}")
 
     claimant = get_claimant(full_text)
