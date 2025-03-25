@@ -293,7 +293,7 @@ def get_owner_address(text):
         if address or city or state or zip:
             return address, city, state, zip
 
-    return None
+    return None, None, None, None
 
 def get_claimant_phone(text):
     claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
