@@ -184,68 +184,36 @@ def extract_info_from_json(json_file_path):
                 return None, None, None, None
 
             text = clean_text(text)
-            parsed_address, address_type = usaddress.tag(text)
-            address = parsed_address.get('AddressNumber', '') + ' ' + parsed_address.get('StreetName', '')
-            city = parsed_address.get('PlaceName', '')
-            state = parsed_address.get('StateName', '')
-            zipcode = parsed_address.get('ZipCode', '')
 
-            return address.strip(), city.strip(), state.strip(), zipcode.strip()
+            parsed_addresses = usaddress.parse(text)
+            
+            address, city, state, zipcode = "", "", "", ""
+
+            temp_address = []
+            found_city = False
+
+            for component, label in parsed_addresses:
+                if label in ["AddressNumber", "StreetName", "StreetNamePostType", "OccupancyType", "OccupancyIdentifier"]:
+                    temp_address.append(component)
+                elif label == "PlaceName" and not found_city:
+                    city = component
+                    found_city = True  
+                elif label == "StateName":
+                    state = component
+                elif label == "ZipCode":
+                    zipcode = component
+
+            address = " ".join(temp_address).strip()
+
+            if not address and state and zipcode:
+                address, city = None, None
+
+            return address, city, state, zipcode
 
         except Exception as e:
             print(f"Error in extract_address_with_usaddress: {e}")
-        return None, None, None, None
-        # try:
-        #     if not text:
-        #         return None, None, None, None
-
-        #     text = clean_text(text)
-
-        #     address_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy|Building\s*\d+))'
-
-        #     city_state_zip_pattern = r'\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-
-        #     po_box_pattern = r'(PO\s*BOX\s*\d+)\s*,?\s*([A-Za-z\s]+?),\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-
-        #     # Check if PO BOX exists first
-        #     po_box_match = re.search(po_box_pattern, text)
-        #     if po_box_match:
-        #         return (
-        #             po_box_match.group(1),  
-        #             po_box_match.group(2).strip(), 
-        #             po_box_match.group(3), 
-        #             po_box_match.group(4) if po_box_match.group(4) else None,  
-        #         )
-
-        #     # Extract address
-        #     address_match = re.search(address_pattern, text)
-        #     address = address_match.group(1) if address_match else None
-        #     city, state, zipcode = None, None, None
-
-        #     if address:
-        #         remaining_text = text[text.index(address) + len(address):]
-        #         city_state_zip_match = re.search(city_state_zip_pattern, remaining_text)
-
-        #         if city_state_zip_match:
-        #             city = city_state_zip_match.group(1).strip()
-        #             state = city_state_zip_match.group(2)
-        #             zipcode = city_state_zip_match.group(3) if city_state_zip_match.group(3) else None
-
-        #     if address and city and state:
-        #         return address, city, state, zipcode
-
-        #     flexible_pattern = r'(\d+\s[\w\s#.,/-]+(?:Way|St|Ave|Blvd|Rd|Dr|Lane|Ct|Pl|Terrace|Drive|Pkwy))\s*,?\s*([A-Za-z\s]+?)\s*,?\s*([A-Z]{2})\s*(\d{5}(-\d{4})?)?'
-        #     matches = re.findall(flexible_pattern, text)
-        #     if matches:
-        #         for match in matches:
-        #             street, city, state, zip_code = match[0], match[1], match[2], match[3] if match[3] else None
-        #             if city and state:
-        #                 return street, city.strip(), state, zip_code
-
-        # except Exception as e:
-        #     print(f"Error in extract_address: {e}")
-        # return None, None, None, None
-
+            return None, None, None, None
+        
     try:
         with open(json_file_path, "r", encoding="utf-8") as f:
             json_data = json.load(f)
