@@ -182,15 +182,23 @@ def extract_address(text):
         text = clean_text(text)  
         tagged_address, address_type = usaddress.tag(text)
 
+        if address_type == "Ambiguous":
+            print(f"Ambiguous address found: {text}")
+            return None, None, None, None
+        
         address = []
         city = tagged_address.get("PlaceName", "")
         state = tagged_address.get("StateName", "")
         zipcode = tagged_address.get("ZipCode", "")
 
-        for key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
-                    "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
-                    "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
-            if key in tagged_address:
+        address_parts = [
+            "AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
+            "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
+            "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"
+        ]
+        
+        for key in address_parts:
+            if key in tagged_address and tagged_address[key] not in address:
                 address.append(tagged_address[key])
 
         address = " ".join(address).strip()
