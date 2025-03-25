@@ -406,9 +406,9 @@ def remove_watermark(wm_text, inputFile, outputFile):
 async def process_pdf(docid: str) -> tuple:
     input_pdf_path = f"downloads/{docid}.pdf"
     pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
-    ExtractTextInfoWithCharBoundsFromPDF(input_pdf_path)
+    ExtractTextInfoFromPDF(input_pdf_path)
     
-    output_folder = "output/ExtractTextInfoWithCharBoundsFromPDF"
+    output_folder = "output/ExtractTextInfoFromPDF"
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     zip_file_path = f"{output_folder}/extract{time_stamp}.zip"
         
@@ -513,7 +513,7 @@ async def main():
     clear_csv_file()
 
     download_path = os.path.join(os.getcwd(), 'downloads')
-    output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoWithCharBoundsFromPDF')
+    output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoFromPDF')
     os.makedirs(download_path, exist_ok=True)
     clear_downloads_output_folder(download_path, output_path)
 
