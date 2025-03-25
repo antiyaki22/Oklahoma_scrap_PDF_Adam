@@ -139,38 +139,6 @@ def extract_full_name(json_file_path):
 
     return priority_name if priority_name else (full_names[0] if full_names else None)
 
-def extract_phone_number(json_file_path):
-    with open(json_file_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-
-    patterns = [
-        r"\(\d{3}\)\s\d{3}[-\s]?\d{4}",  
-        r"\(\d{3}\)-\d{3}-\d{4}",        
-        r"\d{3}-\d{3}-\d{4}"             
-    ]
-
-    all_numbers = []
-
-    for element in data.get("elements", []):
-        text = element.get("Text", "")
-
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                return match.group(0)  
-
-        number_matches = re.findall(r"\d{10,}", text)  
-        all_numbers.extend(number_matches)
-
-    formatted_numbers = [
-        f"({num[:3]}) {num[3:6]}-{num[6:10]}" for num in all_numbers if len(num) >= 10
-    ]
-
-    if formatted_numbers:
-        return max(formatted_numbers, key=len)  
-
-    return "No valid phone number found"
-
 def extract_address(text):
     try:
         if not text:
@@ -181,6 +149,7 @@ def extract_address(text):
         
         text = clean_text(text)
 
+        # Attempt to tag the address
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
