@@ -225,7 +225,7 @@ def get_claimant(text):
     claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
     if claims_match:
         print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"claimant: {claimant_match.group(1)}")
+        print (f"claimant: {claims_match.group(1)}")
         claimant_text = claims_match.group(1)
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
@@ -258,7 +258,7 @@ def get_owner(text):
     owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
     if owner_match:
         print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"owner: {owned_match.group(1)}")
+        print (f"owner: {owner_match.group(1)}")
         owner_text = owner_match.group(1)
         owner_name = extract_company_name(owner_text)
         if owner_name:
