@@ -418,7 +418,7 @@ async def process_pdf(docid: str) -> tuple:
     owner = get_owner(full_text)
     address, city, state, zipcode = get_owner_address(full_text)
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
-    phone_number = get_claimant_phone(full_text)
+    phone_number = extract_phone_number(full_text)
 
     info: dict[str, any] = {
         "claimant": claimant,
