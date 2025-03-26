@@ -184,7 +184,7 @@ def extract_address(text):
         address = " ".join(address_parts).strip()
 
         # ✅ Use regex to extract fallback address if required
-        if not address or len(address.split()) > 8 or not city or not state or not zipcode:
+        if not address or not city or not state or not zipcode:
             regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
@@ -203,11 +203,18 @@ def extract_address(text):
             if structured_match:
                 address, city, state, zipcode = structured_match.groups()
 
+        # ✅ Handle PO Box cases
+        po_box_regex = r'(PO Box \d+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
+        po_box_match = re.search(po_box_regex, text, re.IGNORECASE)
+        if po_box_match:
+            address, city, state, zipcode = po_box_match.groups()
+
         # ✅ Ensure state is a proper abbreviation (convert full name if needed)
         state_abbreviations = {
             "Oklahoma": "OK",
             "Texas": "TX",
             "California": "CA",
+            "Idaho": "ID",
             # Add more states as needed
         }
 
