@@ -215,6 +215,8 @@ def get_merged_text(file_path: str) -> str:
 def get_claimant(text):
     claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
     if claimant_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"claimant: {claimant_match.group(1)}")
         claimant_text = claimant_match.group(1)
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
@@ -222,18 +224,20 @@ def get_claimant(text):
 
     claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
     if claims_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"claimant: {claimant_match.group(1)}")
         claimant_text = claims_match.group(1)
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
-    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print (f"claimant: {claimant_match.group(1)}")
 
     return None
 
 def get_contractor(text):
     contractor_match = re.search(r'(?:Contractor|Customer):\s*(.*)', text, re.IGNORECASE)
     if contractor_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"contractor: {contractor_match.group(1)}")
         contractor_text = contractor_match.group(1)
         contractor_name = extract_company_name(contractor_text)
         if contractor_name:
@@ -241,18 +245,20 @@ def get_contractor(text):
 
     contractor_match = re.search(r'\b(?:claims|against|upon)\b\s*(.*)', text, re.IGNORECASE)
     if contractor_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"contractor: {contractor_match.group(1)}")
         contractor_text = contractor_match.group(1)
         contractor_name = extract_company_name(contractor_text)
         if contractor_name:
             return contractor_name
-    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print (f"contractor: {contractor_match.group(1)}")
 
     return None
 
 def get_owner(text):
     owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
     if owner_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"owner: {owned_match.group(1)}")
         owner_text = owner_match.group(1)
         owner_name = extract_company_name(owner_text)
         if owner_name:
@@ -260,12 +266,12 @@ def get_owner(text):
 
     owned_match = re.search(r'(.+)\b(owned|owned by)\b', text, re.IGNORECASE)
     if owned_match:
+        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print (f"owner: {owned_match.group(1)}")
         owner_text = owned_match.group(1)
         owner_name = extract_company_name(owner_text)
         if owner_name:
             return owner_name
-    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print (f"owner: {owned_match.group(1)}")
 
     return None
 
