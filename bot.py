@@ -159,6 +159,7 @@ def extract_address(text):
 
         text = clean_text(text)
 
+        # First extraction using usaddress
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
@@ -182,19 +183,15 @@ def extract_address(text):
 
         address = " ".join(address_parts).strip()
 
-        regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
-        matches = re.findall(regex, text)
+        # Second pass: Validate and refine the extracted address
+        if not address or len(address.split()) > 8:  # If address is empty or suspiciously long
+            regex = r'(\d+\s[\w\s\.,#-]+)(?=,|$)'  # Extract only the first valid street address
+            matches = re.findall(regex, text)
 
-        if matches:
-            best_match = matches[-1]  
-            address, city, state, zipcode = best_match
-            zipcode = zipcode if zipcode else None  
+            if matches:
+                address = matches[-1].strip()  # Get the most relevant address
 
-        possible_addresses = [addr.strip() for addr in text.split(",") if re.search(r'\d+', addr)]
-        if possible_addresses:
-            address = possible_addresses[-1]
-
-        return address.strip(), city, state, zipcode
+        return address, city, state, zipcode
 
     except Exception as e:
         print(f"Error in extract_address: {e}")
