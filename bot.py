@@ -245,7 +245,7 @@ def get_contractor(text):
     return None
 
 def get_owner(text):
-    owner_match = re.search(r'(?:Owner|owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'(?:Owner|Owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -254,7 +254,7 @@ def get_owner(text):
         if owner_name:
             return owner_name
 
-    owned_match = re.search(r'\b(?:owned by|owned)\s+(.{5,100})', text, re.IGNORECASE)
+    owned_match = re.search(r'(.*?)\b(owned by|owned)\b', text, re.IGNORECASE | re.DOTALL)
     if owned_match:
         owner_text = owned_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -266,7 +266,7 @@ def get_owner(text):
     return None
 
 def get_owner_address(text):
-    owner_match = re.search(r'(?:Owner|owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'(?:Owner|Owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -275,7 +275,7 @@ def get_owner_address(text):
         if address or city or state or zip:
             return address, city, state, zip
 
-    owned_match = re.search(r'(.{5,100})\s*\b(owned by|owned)\b', text, re.IGNORECASE)
+    owned_match = re.search(r'(.*?)\b(owned by|owned)\b', text, re.IGNORECASE | re.DOTALL)
     if owned_match:
         owner_text = owned_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
