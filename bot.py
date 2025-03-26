@@ -25,7 +25,14 @@ months = 3
 
 def extract_company_name(text):
     doc = nlp(text)
+    
     company_names = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "COMPANY"]]
+
+    match = re.search(r'\b([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings))\b', text)
+    
+    if match:
+        return match.group(1)  
+    
     return company_names[0] if company_names else None
 
 def extract_phone_number(text):
@@ -143,13 +150,12 @@ def extract_address(text):
     try:
         if not text:
             return None, None, None, None
-        
+
         def clean_text(text):
             return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
-        
+
         text = clean_text(text)
 
-        # Attempt to tag the address
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
@@ -183,6 +189,12 @@ def extract_address(text):
         state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
         if state_match and not state:
             state = state_match.group(2).strip()
+
+        # **Ensure we extract only the first valid address**
+        if not address:
+            address_match = re.search(r'(\d+\s[\w\s\.,]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?', text)
+            if address_match:
+                address, city, state, zipcode = address_match.groups()
 
         return address, city, state, zipcode
 
