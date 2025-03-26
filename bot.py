@@ -182,13 +182,19 @@ def extract_address(text):
 
         address = " ".join(address_parts).strip()
 
-        if not address or not city or not state or not zipcode:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
-            address_match = re.search(regex, text)
-            if address_match:
-                address, city, state, zipcode = address_match.groups()
+        regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
+        matches = re.findall(regex, text)
 
-        return address, city, state, zipcode
+        if matches:
+            best_match = matches[-1]  
+            address, city, state, zipcode = best_match
+            zipcode = zipcode if zipcode else None  
+
+        possible_addresses = [addr.strip() for addr in text.split(",") if re.search(r'\d+', addr)]
+        if possible_addresses:
+            address = possible_addresses[-1]
+
+        return address.strip(), city, state, zipcode
 
     except Exception as e:
         print(f"Error in extract_address: {e}")
