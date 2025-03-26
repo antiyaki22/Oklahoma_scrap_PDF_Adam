@@ -254,7 +254,7 @@ def get_owner(text):
         if owner_name:
             return owner_name
 
-    owned_match = re.search(r'(.{5,100})\s*\b(owned by|owned)\b', text, re.IGNORECASE)
+    owned_match = re.search(r'\b(?:owned by|owned)\s+(.{5,100})', text, re.IGNORECASE)
     if owned_match:
         owner_text = owned_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
