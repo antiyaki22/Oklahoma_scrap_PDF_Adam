@@ -37,7 +37,10 @@ def extract_company_name(text):
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
-    return numbers[0] if numbers else None
+    if numbers:
+        phone_number = phonenumbers.format_number(numbers[0], phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+        return phone_number.replace(" ", "-") 
+    return None
 
 def ensure_playwright_browsers():
     try:
@@ -159,7 +162,7 @@ def extract_address(text):
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
-            tagged_address = {}
+            return None, None, None, None  
 
         address_parts = []
         city, state, zipcode = None, None, None
@@ -174,16 +177,16 @@ def extract_address(text):
             elif key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
                          "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
                          "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
-                if value not in address_parts:
-                    address_parts.append(value)
+                address_parts.append(value)
 
-        address = " ".join(address_parts).strip()
+        if address_parts:
+            address = " ".join(address_parts).strip()
+        else:
+            address = None
 
-        if not address or not city or not state or not zipcode:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
-            address_match = re.search(regex, text)
-            if address_match:
-                address, city, state, zipcode = address_match.groups()
+        possible_addresses = re.findall(r'\d+\s+[A-Za-z0-9\s\.,]+', text)
+        if possible_addresses:
+            address = possible_addresses[0]  
 
         return address, city, state, zipcode
 
