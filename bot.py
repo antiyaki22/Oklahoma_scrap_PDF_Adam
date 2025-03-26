@@ -159,7 +159,7 @@ def extract_address(text):
 
         text = clean_text(text)
 
-        # ✅ Extract address using usaddress
+        # Extract address using usaddress
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
@@ -168,7 +168,7 @@ def extract_address(text):
         address_parts = []
         city, state, zipcode = None, None, None
 
-        # Collect parts from usaddress tagged address
+        # Extract components from tagged address
         for key, value in tagged_address.items():
             if key == "PlaceName" and not city:
                 city = value
@@ -184,9 +184,9 @@ def extract_address(text):
 
         address = " ".join(address_parts).strip()
 
-        # ✅ Use regex to extract fallback address if required
+        # Use regex for fallback extraction if needed
         if not address or len(address.split()) > 8 or not city or not state or not zipcode:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})'
+            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
             if matches:
@@ -196,7 +196,7 @@ def extract_address(text):
                 state = extracted_state.strip()
                 zipcode = extracted_zip.strip() if extracted_zip else zipcode
 
-        # ✅ Last check: Ensure a valid address, otherwise scan for structured address manually
+        # Last fallback check: Structured address
         if not address or not city or not state or not zipcode:
             structured_regex = r'(\d+\s[\w\s\.,#-]+)\s*,\s*([\w\s]+),\s*([\w]+),\s*(\d{5})'
             structured_match = re.search(structured_regex, text)
@@ -204,33 +204,30 @@ def extract_address(text):
             if structured_match:
                 address, city, state, zipcode = structured_match.groups()
 
-        # ✅ Handle PO Box cases
+        # Handle PO Box cases
         po_box_regex = r'(PO Box \d+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
         po_box_match = re.search(po_box_regex, text, re.IGNORECASE)
         if po_box_match:
             address, city, state, zipcode = po_box_match.groups()
 
-        # ✅ Ensure state is a proper abbreviation (convert full name if needed)
+        # Handle address variations like street number, city, state
+        address_fallback_regex = r'(\d+\s[\w\s\.,#-]+),\s*([\w\s]+),\s*([\w]+),\s*(\d{5})'
+        address_fallback_match = re.search(address_fallback_regex, text)
+        if address_fallback_match:
+            address, city, state, zipcode = address_fallback_match.groups()
+
+        # Ensure state is a proper abbreviation (convert full name if needed)
         state_abbreviations = {
             "Oklahoma": "OK",
             "Texas": "TX",
             "California": "CA",
             "Idaho": "ID",
+            "Louisiana": "LA",
             # Add more states as needed
         }
 
         if state in state_abbreviations:
             state = state_abbreviations[state]
-
-        # ✅ Handle general address cases like "2909 Astoria Way Edmond, OK 73034"
-        street_regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})'
-        street_match = re.search(street_regex, text)
-        if street_match:
-            extracted_address, extracted_city, extracted_state, extracted_zip = street_match.groups()
-            address = extracted_address.strip()
-            city = extracted_city.strip()
-            state = extracted_state.strip()
-            zipcode = extracted_zip.strip() if extracted_zip else zipcode
 
         return address, city, state, zipcode
 
