@@ -159,7 +159,7 @@ def extract_address(text):
 
         text = clean_text(text)
 
-        # First attempt: Extract using usaddress
+        # ✅ Extract address using usaddress
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
@@ -183,18 +183,36 @@ def extract_address(text):
 
         address = " ".join(address_parts).strip()
 
-        # ✅ Improved validation for too-long addresses
+        # ✅ Use regex to extract fallback address if required
         if not address or len(address.split()) > 8 or not city or not state or not zipcode:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2})\s*(\d{5})?'
+            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
             if matches:
-                # Get the last valid match (most likely the correct address)
                 extracted_address, extracted_city, extracted_state, extracted_zip = matches[-1]
                 address = extracted_address.strip()
                 city = extracted_city.strip()
                 state = extracted_state.strip()
                 zipcode = extracted_zip.strip() if extracted_zip else zipcode
+
+        # ✅ Last check: Ensure a valid address, otherwise scan for structured address manually
+        if not address or not city or not state or not zipcode:
+            structured_regex = r'(\d+\s[\w\s\.,#-]+)\s*,\s*([\w\s]+),\s*([\w]+),\s*(\d{5})'
+            structured_match = re.search(structured_regex, text)
+
+            if structured_match:
+                address, city, state, zipcode = structured_match.groups()
+
+        # ✅ Ensure state is a proper abbreviation (convert full name if needed)
+        state_abbreviations = {
+            "Oklahoma": "OK",
+            "Texas": "TX",
+            "California": "CA",
+            # Add more states as needed
+        }
+
+        if state in state_abbreviations:
+            state = state_abbreviations[state]
 
         return address, city, state, zipcode
 
