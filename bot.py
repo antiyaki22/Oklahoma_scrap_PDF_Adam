@@ -190,7 +190,6 @@ def extract_address(text):
         if state_match and not state:
             state = state_match.group(2).strip()
 
-        # **Ensure we extract only the first valid address**
         if not address:
             address_match = re.search(r'(\d+\s[\w\s\.,]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?', text)
             if address_match:
@@ -227,6 +226,7 @@ def get_claimant(text):
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
+    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print (f"claimant: {claimant_match.group(1)}")
 
     return None
@@ -245,6 +245,8 @@ def get_contractor(text):
         contractor_name = extract_company_name(contractor_text)
         if contractor_name:
             return contractor_name
+    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print (f"contractor: {contractor_match.group(1)}")
 
     return None
 
@@ -262,6 +264,8 @@ def get_owner(text):
         owner_name = extract_company_name(owner_text)
         if owner_name:
             return owner_name
+    print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print (f"owner: {owned_match.group(1)}")
 
     return None
 
