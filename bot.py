@@ -183,16 +183,17 @@ def extract_address(text):
 
         address = " ".join(address_parts).strip()
 
-        # Validate and refine extraction
-        if not address or len(address.split()) > 8 or not city or not state:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
-            address_match = re.search(regex, text)
+        # ✅ Improved validation for too-long addresses
+        if not address or len(address.split()) > 8 or not city or not state or not zipcode:
+            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2})\s*(\d{5})?'
+            matches = re.findall(regex, text)
 
-            if address_match:
-                extracted_address, extracted_city, extracted_state, extracted_zip = address_match.groups()
-                address = extracted_address.strip() if extracted_address else address
-                city = extracted_city.strip() if extracted_city else city
-                state = extracted_state.strip() if extracted_state else state
+            if matches:
+                # Get the last valid match (most likely the correct address)
+                extracted_address, extracted_city, extracted_state, extracted_zip = matches[-1]
+                address = extracted_address.strip()
+                city = extracted_city.strip()
+                state = extracted_state.strip()
                 zipcode = extracted_zip.strip() if extracted_zip else zipcode
 
         return address, city, state, zipcode
