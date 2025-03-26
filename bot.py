@@ -168,6 +168,7 @@ def extract_address(text):
         address_parts = []
         city, state, zipcode = None, None, None
 
+        # Collect parts from usaddress tagged address
         for key, value in tagged_address.items():
             if key == "PlaceName" and not city:
                 city = value
@@ -185,7 +186,7 @@ def extract_address(text):
 
         # ✅ Use regex to extract fallback address if required
         if not address or len(address.split()) > 8 or not city or not state or not zipcode:
-            regex = r'(\d+\s[\w\s\.,#-]+?),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
+            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})'
             matches = re.findall(regex, text)
 
             if matches:
@@ -221,15 +222,8 @@ def extract_address(text):
         if state in state_abbreviations:
             state = state_abbreviations[state]
 
-        # ✅ Ensure correct extraction of specific cases
-        if "MERIDIAN ID 83642" in text:
-            address = "2200 S COBALT PT WY"
-            city = "MERIDIAN"
-            state = "ID"
-            zipcode = "83642"
-        
-        # ✅ Handle street extraction edge cases
-        street_regex = r'(\d+\s[\w\s\.,#-]+(?:\s[A-Za-z]+)?),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
+        # ✅ Handle general address cases like "2909 Astoria Way Edmond, OK 73034"
+        street_regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})'
         street_match = re.search(street_regex, text)
         if street_match:
             extracted_address, extracted_city, extracted_state, extracted_zip = street_match.groups()
