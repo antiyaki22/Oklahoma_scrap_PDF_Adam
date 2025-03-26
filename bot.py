@@ -159,7 +159,7 @@ def extract_address(text):
         try:
             tagged_address, address_type = usaddress.tag(text)
         except usaddress.RepeatedLabelError:
-            return None, None, None, None  
+            tagged_address = {}
 
         address_parts = []
         city, state, zipcode = None, None, None
@@ -174,24 +174,14 @@ def extract_address(text):
             elif key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
                          "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
                          "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
-                if value not in address_parts:  
+                if value not in address_parts:
                     address_parts.append(value)
 
         address = " ".join(address_parts).strip()
 
-        if not address and state and zipcode:
-            address, city = None, None
-
-        city_match = re.search(r"City of ([A-Za-z\s]+)", text)
-        if city_match and not city:
-            city = city_match.group(1).strip()
-
-        state_match = re.search(r"([A-Za-z\s]+) County, ([A-Za-z\s]+)", text)
-        if state_match and not state:
-            state = state_match.group(2).strip()
-
-        if not address:
-            address_match = re.search(r'(\d+\s[\w\s\.,]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?', text)
+        if not address or not city or not state or not zipcode:
+            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]+)\s*(\d{5})?'
+            address_match = re.search(regex, text)
             if address_match:
                 address, city, state, zipcode = address_match.groups()
 
@@ -213,20 +203,20 @@ def get_merged_text(file_path: str) -> str:
     return merged_text.strip()
 
 def get_claimant(text):
-    claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
+    claimant_match = re.search(r'claimant:\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"claimant: {claimant_match.group(1)}")
-        claimant_text = claimant_match.group(1)
+        claimant_text = claimant_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"claimant: {claimant_text}")
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
 
-    claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
+    claims_match = re.search(r'(.*?)\b(claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"claimant: {claims_match.group(1)}")
-        claimant_text = claims_match.group(1)
+        claimant_text = claims_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"claimant: {claimant_text}")
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
@@ -234,20 +224,20 @@ def get_claimant(text):
     return None
 
 def get_contractor(text):
-    contractor_match = re.search(r'(?:Contractor|Customer):\s*(.*)', text, re.IGNORECASE)
+    contractor_match = re.search(r'(?:Contractor|Customer):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if contractor_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"contractor: {contractor_match.group(1)}")
-        contractor_text = contractor_match.group(1)
+        contractor_text = contractor_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"contractor: {contractor_text}")
         contractor_name = extract_company_name(contractor_text)
         if contractor_name:
             return contractor_name
 
-    contractor_match = re.search(r'\b(?:claims|against|upon)\b\s*(.*)', text, re.IGNORECASE)
-    if contractor_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"contractor: {contractor_match.group(1)}")
-        contractor_text = contractor_match.group(1)
+    claims_match = re.search(r'\b(?:claims|against|upon)\b\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    if claims_match:
+        contractor_text = claims_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"contractor: {contractor_text}")
         contractor_name = extract_company_name(contractor_text)
         if contractor_name:
             return contractor_name
@@ -255,20 +245,20 @@ def get_contractor(text):
     return None
 
 def get_owner(text):
-    owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
+    owner_match = re.search(r'(?:Owner|owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"owner: {owner_match.group(1)}")
-        owner_text = owner_match.group(1)
+        owner_text = owner_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"owner: {owner_text}")
         owner_name = extract_company_name(owner_text)
         if owner_name:
             return owner_name
 
-    owned_match = re.search(r'(.+)\b(owned|owned by)\b', text, re.IGNORECASE)
+    owned_match = re.search(r'(.{5,100})\s*\b(owned by|owned)\b', text, re.IGNORECASE)
     if owned_match:
-        print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print (f"owner: {owned_match.group(1)}")
-        owner_text = owned_match.group(1)
+        owner_text = owned_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"owner: {owner_text}")
         owner_name = extract_company_name(owner_text)
         if owner_name:
             return owner_name
@@ -276,16 +266,20 @@ def get_owner(text):
     return None
 
 def get_owner_address(text):
-    owner_match = re.search(r'(?:Owner|owners):\s*(.*)', text, re.IGNORECASE)
+    owner_match = re.search(r'(?:Owner|owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
-        owner_text = owner_match.group(1)
+        owner_text = owner_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"owner: {owner_text}")
         address, city, state, zip = extract_address(owner_text)
         if address or city or state or zip:
             return address, city, state, zip
 
-    owned_match = re.search(r'(.+)\b(owned|owned by)\b', text, re.IGNORECASE)
+    owned_match = re.search(r'(.{5,100})\s*\b(owned by|owned)\b', text, re.IGNORECASE)
     if owned_match:
-        owner_text = owned_match.group(1)
+        owner_text = owned_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"owner: {owner_text}")
         address, city, state, zip = extract_address(owner_text)
         if address or city or state or zip:
             return address, city, state, zip
