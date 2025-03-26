@@ -215,7 +215,7 @@ def get_claimant(text):
         claimant_name = extract_company_name(claimant_text)
         if claimant_name:
             return claimant_name
-    print (f"claimant: {claimant_match}")
+    print (f"claimant: {claimant_match.group(1)}")
 
     return None
 
