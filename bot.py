@@ -11,10 +11,13 @@ import spacy
 import zipfile
 import usaddress
 import phonenumbers
+import pandas as pd
+from openpyxl import load_workbook
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.okcc.online/index.php"
 CSV_FILE = "result.csv"
+XLSX_FILE = "result.xlsx"
 
 TABLE_HEADER_SELECTOR = "#rod-table thead tr th"
 TABLE_ROW_SELECTOR = "#rodinitialbody tr"
@@ -500,20 +503,24 @@ async def scrape_table(page, headers):
             cell_values.append(info["dollar"])
             cell_values.append(info["phone"])
 
-        save_to_csv([cell_values], headers=None, append=True)
+        save_to_xlsx([cell_values], headers=None, append=True)
         await asyncio.sleep(2)
 
-def save_to_csv(data, headers, append=True):
-    file_exists = os.path.isfile(CSV_FILE)
+def save_to_xlsx(data, headers, append=True):
+    if append and os.path.isfile(XLSX_FILE):
+        wb = load_workbook(XLSX_FILE)
+        ws = wb.active
+        start_row = ws.max_row + 1  
+    else:
+        wb = None
+        start_row = 1
 
-    with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
+    df = pd.DataFrame(data, columns=headers)
 
-        if headers:
-            writer.writerow(headers)
-        
-        if data:
-            writer.writerows(data)
+    with pd.ExcelWriter(XLSX_FILE, engine='openpyxl', mode='a' if wb else 'w', if_sheet_exists='overlay') as writer:
+        df.to_excel(writer, index=False, header=not wb, startrow=start_row)
+
+    print(f"Updated {XLSX_FILE} with new data: {data}")
 
 async def main():    
     clear_csv_file()
