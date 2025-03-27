@@ -28,15 +28,17 @@ months = 3
 
 def extract_company_name(text):
     doc = nlp(text)
-    
-    company_names = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "COMPANY"]]
+    company_names = [ent.text for ent in doc.ents if ent.label_ == 'ORG']
 
-    match = re.search(r'\b([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings))\b', text)
+    if company_names:
+        return company_names[0]
+    
+    match = re.search(r'\b([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Associates|Partners|Industries|Technologies))\b', text)
     
     if match:
-        return match.group(1)  
-    
-    return company_names[0] if company_names else None
+        return match.group(1)
+
+    return None
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
@@ -223,7 +225,7 @@ def get_merged_text(file_path: str) -> str:
     return merged_text.strip()
 
 def get_claimant(text):
-    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,9})', text, re.IGNORECASE | re.DOTALL)
+    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
         claimant_text = claimant_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -232,7 +234,7 @@ def get_claimant(text):
         if claimant_name:
             return claimant_name
 
-    claims_match = re.search(r'(\S+(?:\s+\S+){0,9})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
+    claims_match = re.search(r'(\S+(?:\s+\S+){0,29})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
         claimant_text = claims_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -244,7 +246,7 @@ def get_claimant(text):
     return None
 
 def get_contractor(text):
-    contractor_match = re.search(r'\b(?:Contractor|Customer|claims|against|upon):?\s*(\S+(?:\s+\S+){0,9})', text, re.IGNORECASE | re.DOTALL)
+    contractor_match = re.search(r'\b(?:Contractor|Customer|claims|against|upon):?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
     if contractor_match:
         contractor_text = contractor_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -256,7 +258,7 @@ def get_contractor(text):
     return None
 
 def get_owner(text):
-    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -268,7 +270,7 @@ def get_owner(text):
     return None
 
 def get_owner_address(text):
-    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -280,14 +282,14 @@ def get_owner_address(text):
     return None, None, None, None
 
 def get_claimant_phone(text):
-    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
+    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
         claimant_text = claimant_match.group(1)
         phone = extract_phone_number(claimant_text)
         if phone:
             return phone
 
-    claims_match = re.search(r'(\S+(?:\s+\S+){0,19})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
+    claims_match = re.search(r'(\S+(?:\s+\S+){0,29})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
         claimant_text = claims_match.group(1)
         phone = extract_phone_number(claimant_text)
