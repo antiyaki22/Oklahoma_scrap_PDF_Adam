@@ -42,14 +42,12 @@ def extract_company_name(text):
     if current_name:
         company_names.append(" ".join(current_name))
 
-    business_suffixes = ["inc", "llc", "ltd", "corporation", "co", "group", "enterprises", "holdings", "corp"]
-    
-    valid_names = [name for name in company_names if len(name.split()) > 1 or any(suffix in name.lower() for suffix in business_suffixes)]
-    
-    if valid_names:
-        return max(valid_names, key=len)
+    if not company_names:
+        match = re.search(r'\b([A-Z][A-Za-z&,\-\.]+(?:\s[A-Z][A-Za-z&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+        if match:
+            return match.group(1)
 
-    return None
+    return max(company_names, key=len) if company_names else None
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
