@@ -9,6 +9,9 @@ import fitz
 from PIL import Image
 from io import BytesIO
 import usaddress
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 def extract_largest_dollar_amount(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -132,6 +135,41 @@ def get_merged_text(file_path: str) -> str:
     
     return merged_text.strip()
 
+def extract_company_name(text):
+    # Process the text with spaCy
+    doc = nlp(text)
+    
+    # Initialize the matcher to find specific company name patterns
+    matcher = Matcher(nlp.vocab)
+    
+    # Define patterns for company name suffixes (e.g., Inc, LLC, Ltd, Corp)
+    patterns = [
+        [{"LOWER": {"in": ["inc", "llc", "ltd", "corp", "group", "enterprises", "holdings"]}}]
+    ]
+    
+    matcher.add("CompanyNames", patterns)
+    
+    # Extract ORG entities first (general organization names)
+    org_names = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+
+    # Match patterns for common company name suffixes
+    matches = matcher(doc)
+
+    # Collect company names from both spaCy's NER and Matcher
+    company_names = set(org_names)  # Use a set to avoid duplicates
+    for match_id, start, end in matches:
+        span = doc[start:end]
+        company_names.add(span.text)
+
+    # Filter out invalid results, e.g., non-company entities like "Legal Property Description"
+    # Company names should usually have at least two words and common company suffixes
+    filtered_company_names = [
+        name for name in company_names if len(name.split()) > 1 and any(suffix in name.lower() for suffix in ["inc", "llc", "ltd", "corp", "group", "enterprises", "holdings"])
+    ]
+    
+    # Return the first valid company name found, or None if not found
+    return filtered_company_names[0] if filtered_company_names else None
+
 if __name__ == "__main__":
     # input_pdf_path = "downloads/ocr_test.pdf"
     # pdf_filename = os.path.splitext(os.path.basename(input_pdf_path))[0]
@@ -165,7 +203,10 @@ if __name__ == "__main__":
     # text = "Burlington Crossing, LLC, an Oklahoma limited liability company, 9204 N. Kelley Avenue, Oklahoma City, OK 73131 and having the legal description as shown on the attached Exhibit ; that the said sum is just, due and unpaid, and Sunstate Equipment Co., claims a lien upon said buildings and upon the said premises on which the same is situated, to the amount of $23,443.00 as above set forth, according to the laws of the State of Oklahoma.  Dated this 257day of le/ .202s. Ł  Reynolds, Ridings, Vogt & Robertson  101  Park Avenue, Suite 1010  Oklahoma City, OK 73102  VERIFICATION  STATE OF OKLAHOMA  ) ss.  COUNTY OF OKLAHOMA)  James Vogt, of lawful age, being first duly sworn, upon oath says: That he is the Attorney for Sunstate Equipment Co., and authorized to execute this verification; that he has read this statement and knows the contents thereof; that the name of the owner, the name of the claimant, the description of the property upon which the lien is claimed, and the items of the account as therein set forth, are just, true, correct and unpaid and claimant has complied with the provisions 0f 42 O.S.  §142.6.  , 2025.  Mail Notices to:  Burlington Crossing, LLC, an Oklahoma limited liability company  9204 N. Kelley Avenue  Oklahoma City, OK 73131  Kalka Steel Erectors, LLC  348928 E 910 Road  Chandler, OK 74834  2025032501041113 B: 16043 P: 490 03/25/2025 04:23 PM Page 3 of 5 2024042601053574 B: 15736 P: 1482 04/26/202412:06 PM Page 13 of 13  Exhibit   A tract of land being a part of the Northwest Quarter (NW/4) of Section Four (4 Twelve (12) North, Range Three (3) West of the Indian Meridian, Oklahoma Ci Oklahoma, and being a portion of Lot Twenty-five A (25A) in Block Five (5) of according to the Plat recorded in Book PL77, Page 13, being more partic BEGINNING at the Northeast (NE) Corner of said Lot 25A; THENCE Sout Ł the East line of said Lot 25A, a distance of 318.96 feet; THENCE South East line, a distance of 90.00 feet to a point on the West line of said Lot 11 West, along and with said West line, a distance of 318.96 feet to the Nort Ł Lot 25A; THENCE North 63°38[31 East, along and with the North li feet to the POINT OF BEGINNING. Ł Ł Ith  3/25/25  C=P2P D=Dispute S=Inv Sum 7=Fax 8=LienWvr 9=WriteOff E=Email  14:04:28 Customer Invoice Inquiry Sys: SUNSTATE status: H Total $: 67,576.32 Location Search Cmp: SS Loe: PHX Cust #: 129057 KALKA STEEL ERECTORS, LLC Phone: 405-240-4608 Email: Y Select-Open: Y Paid: N Options: 2=LateChg 3=Pmt/Adj 5=Display 6=Print  •□ � � '''*' ' "" � � 80,3, NW...............�.� Op Invoice # Type ST Inv Date Balance Loc W Job Location_ 12886725-004 RETURN OP 12/19/24 204.26 OKC 803 NW 72ND ST OKLAHOMA C  23443.08  <----Total  Bottom F3=Exit F4=Search Fl1=More F13=Pmt hst F15=Sales hst F22=Aging F24=More Make selections.  3/25/25 14:04:28 customer Invoice Inquiry Sys: SUNSTATE status: H Total $: 67,576.32 Location search Cmp: ss Loe: PHX Cust #: 129057 KALKA STEEL ERECTORS, LLC Phone: 405-240-4608 Email: Y Select-Open: Y Paid: N Options: 2=LateChg 3=Pmt/Adj 5=Display 6=Print  C=P2P  S=Inv, Sum 7=Fax 8=LienWvr 9=WriteOff E=Email  D=Dispute  • Ł Ł '''' '''' ' Ł Ł 8,0,3, NWŁ..............Ł Ł  Op  Invoice #  Type  ST  Inv Date  Balance  Loc W  Job  Location  _  12886252-001  BILLED  OP  11/18/24  3751.36  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886252-002  BILLED  OP  12/16/24  3753.28  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886252-003  RETURN  OP  12/23/24  43.41  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886353-001  BILLED  OP  11/18/24  2726.49  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886353-002  BILLED  OP  12/16/24  2390.97  OKC  803  NW 72ND ST  OKLAHOMA C  12886353-003  RETURN  OP  1/02/25  2243.81  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886354-001  BILLED  OP  11/18/24  759.66  OKC  803  NW 72ND ST  OKLAHOMA C  _  12886354-002  BILLED  OP  12/16/24  609.96  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886354-003  RETURN  OP  12/23/24  150.00  OKC  803  NW 72ND ST  OKLAHOMA C  _  - 12886363-001  BILLED  OP  11/18/24,  759.66  OKC  803  NW 72ND ST  OKLAHOMA C  12886363-002  BILLED  OP  12/16/24  609.96  OKC  803  NW 72ND ST  OKLAHOMA C  - 12886363-003  RETURN  OP  1/02/25  759.45  OKC  803  NW 72ND ST  OKLAHOMA C  _  - 12886725-002  BILLED  OP  11/18/24  2414.83  OKC  803  NW 72ND ST  OKLAHOMA C  _  12886725-003  BILLED  OP  12/16/24  2265.98  OKC  803  NW 72ND ST  OKLAHOMA C  More...  F3=Exit F4=Search F11=More F13=Pmt hst F15=Sales hst F22=Aging F24=More Make selections."
     # text = "owner: 2025031801037225 B: 16035 P: 34  03/18/2025 09:05:26 AM Pgs: 7  Fee: $47.20  Maressa Treat, County Clerk  Oklahoma County -State of Oklahoma  Prepared and Submitted For Recording By: BLACKMON MOORING OF OKC, LLC Signed by Erin Hildebrand, as agent of BLACKMON MOORING OF OKC, LLC  Please Return To Submitter At BLACKMON  SPACE ABOVE FOR RECORDER'S USE  MOORING OF OKC, LLC  1101 Enterprise Ave, Ste 1  OkJahoma City, Oklahoma 73128  MECHANIC'S OR MATERIALMAN'S LIEN STATEMENT  State of Oklahoma I County of Oklahoma County  Pursuant to Okla. Stat. tit. 42, § 141  ML#  LV Reference ID: 9BG3877YMR2K  Claimant  BLACKMON MOORING OF OKC, LLC  1101 Enterprise Ave, Ste 1  OkJahoma City, Oklahoma 73128  (817) 810-5686  Property Owner I  O  White, Michael  1125 Sw 78th Ter  Oklahoma City, OK 73139  Amount of Claim  $9,811.92  Itemized Invoice or Statement Supporting Above Amount As Follows or Attached Hereto:  General Statement of kind of work done and/or materials furnished (Services):  Materials and Labor for Reconstruction­Structural Damage  Date of Contract:  December 07, 2024  LEVELSET 1121 JOSEPHINE ST NEW ORLEANS, LA 70130  Last Date Labor and/or Materials  7/477°  Furnished:  January 31, 2025  IMPORTANT INFORMATION ON FOLLOWING PAGE  Ł  The Services were performed in construction of improvements at the following described Property:  State of Oklahoma  County: Oklahoma County  1125  SW 78th Terrace  Oklahoma City, Oklahoma 73139  Legal Property Description:  Please see attached Exhibit A. Tax ID: 109891520  Know all persons by these presents:  1.  That the above-identified and undersigned Claimant, BLACKMON MOORING OF OKC, LLC, has and claims a mechanic's and materialman's lien upon the property situated in the State of Oklahoma, county of Oklahoma County, and described above in this statement as the Property, together with the structures, buildings, improvements and appurtenances thereon and thereto.  2.  That the land, buildings, appurtenances and improvements are"
     
-    text = get_merged_text("test.json")
-    print (text)
-    address, city, state, zip = extract_address(text)
-    print (address, city, state, zip)
+    # text = get_merged_text("test.json")
+    # print (text)
+    # address, city, state, zip = extract_address(text)
+
+    text = "HERITAGE LANDSCAPE SUPPLY GROUP INC DBA DAVIS SUPPLY  509 WESTLAND Dr  EDMOND, OK 73013  Property:  2200  NE 63rd  Oklahoma City, OK 73111  Legal Property Description attached as Exhibit   Property"
+    company = extract_company_name(text)
+    print (company)
