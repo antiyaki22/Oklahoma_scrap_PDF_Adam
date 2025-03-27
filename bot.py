@@ -465,12 +465,12 @@ async def scrape_table(page, headers):
             print (f"cell values 0: ", cell_values)
 
             info = await process_pdf(docid=doc_id)
-            # if cell_values[6] == "N/A":
-            cell_values[6] = info["claimant"]
-            # if cell_values[7] == "N/A":
-            cell_values[7] = info["contractor"]
-            # if cell_values[8] == "N/A":
-            cell_values[8] = info["owner"]
+            if cell_values[6] == "N/A":
+                cell_values[6] = info["claimant"]
+            if cell_values[7] == "N/A":
+                cell_values[7] = info["contractor"]
+            if cell_values[8] == "N/A":
+                cell_values[8] = info["owner"]
             cell_values[9] = info["address"]
             cell_values.append(info["city"])
             cell_values.append(info["state"])
@@ -501,7 +501,6 @@ def save_to_xlsx(data, headers, append=True):
     wb.save(XLSX_FILE)
 
     print(f"Updated {XLSX_FILE} with new data: {data if data else 'No data'} and headers: {headers if headers else 'No headers'}")
-
 
 async def main():    
     clear_xlsx_file()
