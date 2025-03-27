@@ -164,7 +164,7 @@ def extract_address(text):
 
         try:
             parsed_address = usaddress.parse(text)
-            print("usaddress.parse output:", parsed_address)  
+            print("usaddress.parse output:", parsed_address) 
 
             address_number = None
             street_name = []

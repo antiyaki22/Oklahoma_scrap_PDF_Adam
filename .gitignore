@@ -4,3 +4,4 @@ sdk/__pycache__
 pdfservices-api-credentials.json
 .env
 output
+test.json
