@@ -159,81 +159,75 @@ def extract_address(text):
 
         text = clean_text(text)
 
-        # Extract address using usaddress
+        text = re.sub(r'\s+', ' ', text)
+
+        print("==== Processing Address Extraction ====")
+
+        best_address = None
+        best_city, best_state, best_zipcode = None, None, None
+
         try:
-            tagged_address, address_type = usaddress.tag(text)
+            parsed_address = usaddress.parse(text)
+            print("usaddress.parse output:", parsed_address)
+
+            extracted_addresses = []
+            current_address = []
+            current_city, current_state, current_zip = None, None, None
+
+            for component, label in parsed_address:
+                if label == "AddressNumber" or label.startswith("Street"):
+                    current_address.append(component)
+                elif label == "PlaceName":
+                    current_city = component
+                elif label == "StateName":
+                    current_state = component
+                elif label == "ZipCode":
+                    current_zip = component
+
+                if label in ["ZipCode", "StateName", "PlaceName"] and current_address:
+                    extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
+                    current_address = []
+                    current_city, current_state, current_zip = None, None, None
+
+            if current_address:
+                extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
+
+            for addr, city, state, zipcode in extracted_addresses:
+                if addr and city and state and zipcode: 
+                    best_address, best_city, best_state, best_zipcode = addr, city, state, zipcode
+
         except usaddress.RepeatedLabelError:
-            tagged_address = {}
+            print("usaddress.parse failed, falling back to regex")
 
-        address_parts = []
-        city, state, zipcode = None, None, None
-
-        # Extract components from tagged address
-        for key, value in tagged_address.items():
-            if key == "PlaceName" and not city:
-                city = value
-            elif key == "StateName" and not state:
-                state = value
-            elif key == "ZipCode" and not zipcode:
-                zipcode = value
-            elif key in ["AddressNumber", "StreetName", "StreetNamePreType", "StreetNamePostType",
-                         "OccupancyType", "OccupancyIdentifier", "BuildingName", "SubaddressType",
-                         "SubaddressIdentifier", "USPSBoxType", "USPSBoxID"]:
-                if value not in address_parts:
-                    address_parts.append(value)
-
-        address = " ".join(address_parts).strip()
-
-        # Use regex for fallback extraction if needed
-        if not address or len(address.split()) > 8 or not city or not state or not zipcode:
+        if not best_address:
             regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
             if matches:
                 extracted_address, extracted_city, extracted_state, extracted_zip = matches[-1]
-                address = extracted_address.strip()
-                city = extracted_city.strip()
-                state = extracted_state.strip()
-                zipcode = extracted_zip.strip() if extracted_zip else zipcode
+                best_address = extracted_address.strip()
+                best_city = extracted_city.strip()
+                best_state = extracted_state.strip()
+                best_zipcode = extracted_zip.strip() if extracted_zip else None
+                print("Regex extracted:", best_address, best_city, best_state, best_zipcode)
 
-        # Last fallback check: Structured address
-        if not address or not city or not state or not zipcode:
-            structured_regex = r'(\d+\s[\w\s\.,#-]+)\s*,\s*([\w\s]+),\s*([\w]+),\s*(\d{5})'
-            structured_match = re.search(structured_regex, text)
-
-            if structured_match:
-                address, city, state, zipcode = structured_match.groups()
-
-        # Handle PO Box cases
-        po_box_regex = r'(PO Box \d+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
-        po_box_match = re.search(po_box_regex, text, re.IGNORECASE)
-        if po_box_match:
-            address, city, state, zipcode = po_box_match.groups()
-
-        # Handle address variations like street number, city, state
-        address_fallback_regex = r'(\d+\s[\w\s\.,#-]+),\s*([\w\s]+),\s*([\w]+),\s*(\d{5})'
-        address_fallback_match = re.search(address_fallback_regex, text)
-        if address_fallback_match:
-            address, city, state, zipcode = address_fallback_match.groups()
-
-        # Ensure state is a proper abbreviation (convert full name if needed)
         state_abbreviations = {
             "Oklahoma": "OK",
             "Texas": "TX",
             "California": "CA",
             "Idaho": "ID",
             "Louisiana": "LA",
-            # Add more states as needed
         }
 
-        if state in state_abbreviations:
-            state = state_abbreviations[state]
+        if best_state in state_abbreviations:
+            best_state = state_abbreviations[best_state]
 
-        return address, city, state, zipcode
+        print("Final Address Selection:", best_address, best_city, best_state, best_zipcode)
+        return best_address, best_city, best_state, best_zipcode
 
     except Exception as e:
         print(f"Error in extract_address: {e}")
-        return None, None, None, None
+        return None, None, None, None    
         
 def get_merged_text(file_path: str) -> str:
     with open(file_path, 'r') as file:
