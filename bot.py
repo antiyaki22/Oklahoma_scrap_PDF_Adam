@@ -511,17 +511,22 @@ def save_to_xlsx(data, headers, append=True):
     if append and os.path.isfile(XLSX_FILE):
         wb = load_workbook(XLSX_FILE)
         ws = wb.active
-        start_row = ws.max_row + 1
+        start_row = ws.max_row  
     else:
-        wb = None
-        start_row = 0
+        wb = Workbook()
+        ws = wb.active
+        start_row = 1
 
-    df = pd.DataFrame(data, columns=headers)
+    if headers and start_row == 1:
+        ws.append(headers)  
 
-    with pd.ExcelWriter(XLSX_FILE, engine='openpyxl', mode='a' if wb else 'w', if_sheet_exists='overlay') as writer:
-        df.to_excel(writer, index=False, header=start_row == 0, startrow=start_row)
+    if data:
+        for row in data:
+            ws.append(row)
 
-    print(f"Updated {XLSX_FILE} with new data: {data}")
+    wb.save(XLSX_FILE)
+    
+    print(f"Updated {XLSX_FILE} with new data: {data if data else 'No data'} and headers: {headers if headers else 'No headers'}")
 
 async def main():    
     clear_xlsx_file()
