@@ -34,12 +34,17 @@ def extract_company_name(text):
         if ent.label_ == "ORG" and len(ent.text.split()) > 1:
             company_names.append(ent.text)
 
+    if company_names:
+        longest_name = max(company_names, key=len)
+        longest_name = re.split(r'\sDBA\s', longest_name, flags=re.IGNORECASE)[0].strip()
+        return longest_name
+
     match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
 
     if match:
-        company_names.append(match.group(1))
+        return match.group(1)
 
-    return max(company_names, key=len) if company_names else None
+    return None
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
