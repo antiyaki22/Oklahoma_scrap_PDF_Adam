@@ -30,22 +30,14 @@ def extract_company_name(text):
     doc = nlp(text)
     company_names = []
 
-    current_name = []
     for ent in doc.ents:
-        if ent.label_ == "ORG":
-            current_name.append(ent.text)
-        else:
-            if current_name:
-                company_names.append(" ".join(current_name))
-                current_name = []
-    
-    if current_name:
-        company_names.append(" ".join(current_name))
+        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
+            company_names.append(ent.text)
 
-    if not company_names:
-        match = re.search(r'\b([A-Z][A-Za-z&,\-\.]+(?:\s[A-Z][A-Za-z&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
-        if match:
-            return match.group(1)
+    match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+
+    if match:
+        company_names.append(match.group(1))
 
     return max(company_names, key=len) if company_names else None
 
