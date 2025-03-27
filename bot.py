@@ -160,73 +160,52 @@ def extract_address(text):
         text = clean_text(text)
         text = re.sub(r'\s+', ' ', text)
 
-        print("==== Processing Address Extraction ====")
-
-        best_address = None
-        best_city, best_state, best_zipcode = None, None, None
+        print("Cleaned Text:", text)  
 
         try:
             parsed_address = usaddress.parse(text)
-            print("usaddress.parse output:", parsed_address)
+            print("usaddress.parse output:", parsed_address)  
 
-            extracted_addresses = []
-            current_address = []
-            current_city, current_state, current_zip = None, None, None
+            address_number = None
+            street_name = []
+            street_name_post_type = None
+            place_name = None
+            state_name = None
+            zip_code = None
 
             for component, label in parsed_address:
-                if label == "AddressNumber" or label.startswith("Street"):
-                    current_address.append(component)
-                elif label == "PlaceName":
-                    current_city = component
-                elif label == "StateName":
-                    current_state = component
-                elif label == "ZipCode":
-                    current_zip = component
+                if label == "AddressNumber" and not address_number:
+                    address_number = component
+                elif label == "StreetName" and not street_name:
+                    street_name.append(component)
+                elif label == "StreetNamePostType" and not street_name_post_type:
+                    street_name_post_type = component
+                elif label == "PlaceName" and not place_name:
+                    place_name = component.strip(",")
+                elif label == "StateName" and not state_name:
+                    state_name = component
+                elif label == "ZipCode" and not zip_code:
+                    zip_code = component
 
-                if label in ["ZipCode", "StateName", "PlaceName"] and current_address:
-                    extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
-                    current_address = []
-                    current_city, current_state, current_zip = None, None, None
+            if address_number and street_name and street_name_post_type:
+                best_address = " ".join([address_number] + street_name + [street_name_post_type])
+            elif street_name:
+                best_address = " ".join([address_number] + street_name) if address_number else " ".join(street_name)
 
-            if current_address:
-                extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
+            best_city = place_name
+            best_state = state_name
+            best_zipcode = zip_code
 
-            for addr, city, state, zipcode in extracted_addresses:
-                if addr and city and state and zipcode:
-                    best_address, best_city, best_state, best_zipcode = addr, city, state, zipcode
+            print("Final Address:", best_address, best_city, best_state, best_zipcode)
 
         except usaddress.RepeatedLabelError:
-            print("usaddress.parse failed, falling back to regex")
+            print("usaddress.parse failed")
 
-        if not best_address:
-            regex = r'(\d+\s[A-Za-z0-9\.\,\-]+\s(?:St|Ave|Blvd|Rd|Drive|Ln|Way|Court|Parkway|Place|Terrace|Pl)\.?),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
-            matches = re.findall(regex, text)
-
-            if matches:
-                extracted_address, extracted_city, extracted_state, extracted_zip = matches[-1]
-                best_address = extracted_address.strip()
-                best_city = extracted_city.strip()
-                best_state = extracted_state.strip()
-                best_zipcode = extracted_zip.strip() if extracted_zip else None
-                print("Regex extracted:", best_address, best_city, best_state, best_zipcode)
-
-        state_abbreviations = {
-            "Oklahoma": "OK",
-            "Texas": "TX",
-            "California": "CA",
-            "Idaho": "ID",
-            "Louisiana": "LA",
-        }
-
-        if best_state in state_abbreviations:
-            best_state = state_abbreviations[best_state]
-
-        print("Final Address Selection:", best_address, best_city, best_state, best_zipcode)
         return best_address, best_city, best_state, best_zipcode
 
     except Exception as e:
         print(f"Error in extract_address: {e}")
-        return None, None, None, None  
+        return None, None, None, None
         
 def get_merged_text(file_path: str) -> str:
     with open(file_path, 'r') as file:
