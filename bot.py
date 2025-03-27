@@ -223,7 +223,7 @@ def get_merged_text(file_path: str) -> str:
     return merged_text.strip()
 
 def get_claimant(text):
-    claimant_match = re.search(r'claimant:\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,9})', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
         claimant_text = claimant_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -232,7 +232,7 @@ def get_claimant(text):
         if claimant_name:
             return claimant_name
 
-    claims_match = re.search(r'(.*?)\b(claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
+    claims_match = re.search(r'(\S+(?:\s+\S+){0,9})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
         claimant_text = claims_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -244,18 +244,9 @@ def get_claimant(text):
     return None
 
 def get_contractor(text):
-    contractor_match = re.search(r'(?:Contractor|Customer):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    contractor_match = re.search(r'\b(?:Contractor|Customer|claims|against|upon):?\s*(\S+(?:\s+\S+){0,9})', text, re.IGNORECASE | re.DOTALL)
     if contractor_match:
         contractor_text = contractor_match.group(1).strip()
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(f"contractor: {contractor_text}")
-        contractor_name = extract_company_name(contractor_text)
-        if contractor_name:
-            return contractor_name
-
-    claims_match = re.search(r'\b(?:claims|against|upon)\b\s*(.+)', text, re.IGNORECASE | re.DOTALL)
-    if claims_match:
-        contractor_text = claims_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print(f"contractor: {contractor_text}")
         contractor_name = extract_company_name(contractor_text)
@@ -265,18 +256,9 @@ def get_contractor(text):
     return None
 
 def get_owner(text):
-    owner_match = re.search(r'(?:Owner|Owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(f"owner: {owner_text}")
-        owner_name = extract_company_name(owner_text)
-        if owner_name:
-            return owner_name
-
-    owned_match = re.search(r'\b(?:owned by|owned)\b\s*(.+)', text, re.IGNORECASE | re.DOTALL)
-    if owned_match:
-        owner_text = owned_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print(f"owner: {owner_text}")
         owner_name = extract_company_name(owner_text)
@@ -286,18 +268,9 @@ def get_owner(text):
     return None
 
 def get_owner_address(text):
-    owner_match = re.search(r'(?:Owner|Owners):\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
     if owner_match:
         owner_text = owner_match.group(1).strip()
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(f"owner: {owner_text}")
-        address, city, state, zip = extract_address(owner_text)
-        if address or city or state or zip:
-            return address, city, state, zip
-
-    owned_match = re.search(r'\b(?:owned by|owned)\b\s*(.+)', text, re.IGNORECASE | re.DOTALL)
-    if owned_match:
-        owner_text = owned_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print(f"owner: {owner_text}")
         address, city, state, zip = extract_address(owner_text)
@@ -307,14 +280,14 @@ def get_owner_address(text):
     return None, None, None, None
 
 def get_claimant_phone(text):
-    claimant_match = re.search(r'claimant:\s*(.+)', text, re.IGNORECASE | re.DOTALL)
+    claimant_match = re.search(r'claimant:\s*(\S+(?:\s+\S+){0,19})', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
         claimant_text = claimant_match.group(1)
         phone = extract_phone_number(claimant_text)
         if phone:
             return phone
 
-    claims_match = re.search(r'(.*?)\b(claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
+    claims_match = re.search(r'(\S+(?:\s+\S+){0,19})\s+\b(?:claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
         claimant_text = claims_match.group(1)
         phone = extract_phone_number(claimant_text)
@@ -431,7 +404,6 @@ async def process_pdf(docid: str) -> tuple:
     os.rename(json_file_path, renamed_json_path)    
 
     full_text = get_merged_text(renamed_json_path)
-    print (f"full text: {full_text}")
 
     claimant = get_claimant(full_text)
     contractor = get_contractor(full_text)
@@ -511,22 +483,23 @@ def save_to_xlsx(data, headers, append=True):
     if append and os.path.isfile(XLSX_FILE):
         wb = load_workbook(XLSX_FILE)
         ws = wb.active
-        start_row = ws.max_row  
+        start_row = ws.max_row 
     else:
-        wb = Workbook()
+        wb = Workbook()  
         ws = wb.active
-        start_row = 1
+        start_row = 1  
 
     if headers and start_row == 1:
-        ws.append(headers)  
+        ws.append(headers) 
 
     if data:
         for row in data:
             ws.append(row)
 
     wb.save(XLSX_FILE)
-    
+
     print(f"Updated {XLSX_FILE} with new data: {data if data else 'No data'} and headers: {headers if headers else 'No headers'}")
+
 
 async def main():    
     clear_xlsx_file()
