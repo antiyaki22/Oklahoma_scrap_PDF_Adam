@@ -26,23 +26,34 @@ TABLE_CELL_SELECTOR = "td"
 nlp = spacy.load("en_core_web_sm")
 months = 3
 
-def extract_company_name(text):
+def extract_company_or_person_name(text):
     doc = nlp(text)
     company_names = []
+    person_names = []
 
     for ent in doc.ents:
         if ent.label_ == "ORG" and len(ent.text.split()) > 1:
             company_names.append(ent.text)
+        elif ent.label_ == "PERSON":
+            person_names.append(ent.text)
 
     if company_names:
         longest_name = max(company_names, key=len)
         longest_name = re.split(r'\sDBA\s', longest_name, flags=re.IGNORECASE)[0].strip()
         return longest_name
 
-    match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+    company_match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+    
+    if company_match:
+        return company_match.group(1)
 
-    if match:
-        return match.group(1)
+    if person_names:
+        return max(person_names, key=len)
+
+    person_match = re.search(r'\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\b', text)
+    
+    if person_match:
+        return person_match.group(1)
 
     return None
 
