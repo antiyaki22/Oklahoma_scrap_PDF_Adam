@@ -303,14 +303,14 @@ def get_owner_address(text):
     return None, None, None, None
 
 def get_claimant_phone(text):
-    claimant_match = re.search(r'claimant:\s*(.*)', text, re.IGNORECASE)
+    claimant_match = re.search(r'claimant:\s*(.+)', text, re.IGNORECASE | re.DOTALL)
     if claimant_match:
         claimant_text = claimant_match.group(1)
         phone = extract_phone_number(claimant_text)
         if phone:
             return phone
 
-    claims_match = re.search(r'(.+)\b(claims|against|upon)\b', text, re.IGNORECASE)
+    claims_match = re.search(r'(.*?)\b(claims|against|upon)\b', text, re.IGNORECASE | re.DOTALL)
     if claims_match:
         claimant_text = claims_match.group(1)
         phone = extract_phone_number(claimant_text)
@@ -434,7 +434,7 @@ async def process_pdf(docid: str) -> tuple:
     owner = get_owner(full_text)
     address, city, state, zipcode = get_owner_address(full_text)
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
-    phone_number = extract_phone_number(full_text)
+    phone_number = get_claimant_phone(full_text)
 
     info: dict[str, any] = {
         "claimant": claimant,
@@ -487,12 +487,12 @@ async def scrape_table(page, headers):
             print (f"cell values 0: ", cell_values)
 
             info = await process_pdf(docid=doc_id)
-            if cell_values[6] == "N/A":
-                cell_values[6] = info["claimant"]
-            if cell_values[7] == "N/A":
-                cell_values[7] = info["contractor"]
-            if cell_values[8] == "N/A":
-                cell_values[8] = info["owner"]
+            # if cell_values[6] == "N/A":
+            cell_values[6] = info["claimant"]
+            # if cell_values[7] == "N/A":
+            cell_values[7] = info["contractor"]
+            # if cell_values[8] == "N/A":
+            cell_values[8] = info["owner"]
             cell_values[9] = info["address"]
             cell_values.append(info["city"])
             cell_values.append(info["state"])
