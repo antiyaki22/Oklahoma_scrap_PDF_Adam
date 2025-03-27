@@ -510,15 +510,15 @@ def save_to_xlsx(data, headers, append=True):
     if append and os.path.isfile(XLSX_FILE):
         wb = load_workbook(XLSX_FILE)
         ws = wb.active
-        start_row = ws.max_row + 1  
+        start_row = ws.max_row + 1
     else:
         wb = None
-        start_row = 1
+        start_row = 0
 
     df = pd.DataFrame(data, columns=headers)
 
-    with pd.ExcelWriter(XLSX_FILE, engine='openpyxl', mode='a' if wb else 'w', if_sheet_exists='overlay') as writer:
-        df.to_excel(writer, index=False, header=not wb, startrow=start_row)
+    with pd.ExcelWriter(XLSX_FILE, engine='openpyxl', mode='a' if wb else 'w') as writer:
+        df.to_excel(writer, index=False, header=start_row == 0, startrow=start_row)
 
     print(f"Updated {XLSX_FILE} with new data: {data}")
 
