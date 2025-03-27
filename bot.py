@@ -12,7 +12,7 @@ import zipfile
 import usaddress
 import phonenumbers
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.okcc.online/index.php"
@@ -81,9 +81,10 @@ def clear_downloads_output_folder(download_path, output_path):
     else:
         print(f"Directory {output_path} does not exist.")
 
-def clear_csv_file():
-    if os.path.isfile(CSV_FILE):
-        open(CSV_FILE, 'w').close()
+def clear_xlsx_file():
+    if os.path.isfile(XLSX_FILE):
+        wb = Workbook()  
+        wb.save(XLSX_FILE)
 
 def extract_dollar_amount(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -523,7 +524,7 @@ def save_to_xlsx(data, headers, append=True):
     print(f"Updated {XLSX_FILE} with new data: {data}")
 
 async def main():    
-    clear_csv_file()
+    clear_xlsx_file()
 
     download_path = os.path.join(os.getcwd(), 'downloads')
     output_path = os.path.join(os.getcwd(), 'output/ExtractTextInfoWithCharBoundsFromPDF')
