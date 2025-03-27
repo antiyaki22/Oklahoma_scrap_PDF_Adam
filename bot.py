@@ -28,15 +28,26 @@ months = 3
 
 def extract_company_name(text):
     doc = nlp(text)
-    company_names = [ent.text for ent in doc.ents if ent.label_ == 'ORG']
+    company_names = []
 
-    if company_names:
-        return company_names[0]
+    current_name = []
+    for ent in doc.ents:
+        if ent.label_ == "ORG":
+            current_name.append(ent.text)
+        else:
+            if current_name:
+                company_names.append(" ".join(current_name))
+                current_name = []
     
-    match = re.search(r'\b([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Associates|Partners|Industries|Technologies))\b', text)
+    if current_name:
+        company_names.append(" ".join(current_name))
+
+    business_suffixes = ["inc", "llc", "ltd", "corporation", "co", "group", "enterprises", "holdings", "corp"]
     
-    if match:
-        return match.group(1)
+    valid_names = [name for name in company_names if len(name.split()) > 1 or any(suffix in name.lower() for suffix in business_suffixes)]
+    
+    if valid_names:
+        return max(valid_names, key=len)
 
     return None
 
