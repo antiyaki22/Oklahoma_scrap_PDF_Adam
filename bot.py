@@ -26,7 +26,7 @@ TABLE_CELL_SELECTOR = "td"
 nlp = spacy.load("en_core_web_sm")
 months = 3
 
-def extract_company_or_person_name(text):
+def extract_company_name(text):
     doc = nlp(text)
     company_names = []
     person_names = []
