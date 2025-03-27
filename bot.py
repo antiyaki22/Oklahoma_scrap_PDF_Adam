@@ -600,7 +600,7 @@ async def main():
         num_pages = await num_pages_element.text_content()
 
         headers = await set_table_headers(page)
-        save_to_csv(data=None, headers=headers, append=True)
+        save_to_xlsx(data=None, headers=headers, append=True)
 
         for i in range(int(num_pages)):
             await scrape_table(page, headers=headers)
