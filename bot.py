@@ -158,7 +158,6 @@ def extract_address(text):
             return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
 
         text = clean_text(text)
-
         text = re.sub(r'\s+', ' ', text)
 
         print("==== Processing Address Extraction ====")
@@ -193,14 +192,14 @@ def extract_address(text):
                 extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
 
             for addr, city, state, zipcode in extracted_addresses:
-                if addr and city and state and zipcode: 
+                if addr and city and state and zipcode:
                     best_address, best_city, best_state, best_zipcode = addr, city, state, zipcode
 
         except usaddress.RepeatedLabelError:
             print("usaddress.parse failed, falling back to regex")
 
         if not best_address:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
+            regex = r'(\d+\s[A-Za-z0-9\.\,\-]+\s(?:St|Ave|Blvd|Rd|Drive|Ln|Way|Court|Parkway|Place|Terrace|Pl)\.?),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
             if matches:
@@ -227,7 +226,7 @@ def extract_address(text):
 
     except Exception as e:
         print(f"Error in extract_address: {e}")
-        return None, None, None, None    
+        return None, None, None, None  
         
 def get_merged_text(file_path: str) -> str:
     with open(file_path, 'r') as file:

@@ -72,8 +72,6 @@ def extract_address(text):
             return re.sub(r'[^\x00-\x7F]+', ' ', text).strip()
 
         text = clean_text(text)
-
-        # Normalize whitespace
         text = re.sub(r'\s+', ' ', text)
 
         print("==== Processing Address Extraction ====")
@@ -81,7 +79,7 @@ def extract_address(text):
         best_address = None
         best_city, best_state, best_zipcode = None, None, None
 
-        # Try extracting with usaddress first
+        # Try parsing the address with usaddress
         try:
             parsed_address = usaddress.parse(text)
             print("usaddress.parse output:", parsed_address)
@@ -100,28 +98,26 @@ def extract_address(text):
                 elif label == "ZipCode":
                     current_zip = component
 
-                # If we encounter another address-like part, save the previous one
                 if label in ["ZipCode", "StateName", "PlaceName"] and current_address:
                     extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
                     current_address = []
                     current_city, current_state, current_zip = None, None, None
 
-            # Ensure the last captured address is added
             if current_address:
                 extracted_addresses.append((" ".join(current_address), current_city, current_state, current_zip))
 
-            # Filter the best address
+            # Choose the best address if all components are found
             for addr, city, state, zipcode in extracted_addresses:
-                if addr and city and state and zipcode:  # Prioritize full addresses
+                if addr and city and state and zipcode:
                     best_address, best_city, best_state, best_zipcode = addr, city, state, zipcode
-                    break  # Stop as soon as we find a good match
 
         except usaddress.RepeatedLabelError:
             print("usaddress.parse failed, falling back to regex")
 
-        # If no valid address from usaddress, use regex as a fallback
+        # Fallback to regex if usaddress parsing fails
         if not best_address:
-            regex = r'(\d+\s[\w\s\.,#-]+),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
+            # Improve regex to capture only valid street addresses
+            regex = r'(\d+\s[A-Za-z0-9\.\,\-]+\s(?:St|Ave|Blvd|Rd|Drive|Ln|Way|Court|Parkway|Place|Terrace|Pl)\.?),\s*([A-Za-z\s]+),\s*([A-Za-z]{2,})\s*(\d{5})?'
             matches = re.findall(regex, text)
 
             if matches:
@@ -132,7 +128,7 @@ def extract_address(text):
                 best_zipcode = extracted_zip.strip() if extracted_zip else None
                 print("Regex extracted:", best_address, best_city, best_state, best_zipcode)
 
-        # Convert full state names to abbreviations
+        # Check for state abbreviations
         state_abbreviations = {
             "Oklahoma": "OK",
             "Texas": "TX",
