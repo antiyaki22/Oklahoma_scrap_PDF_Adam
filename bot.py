@@ -37,7 +37,7 @@ def clean_company_name(name):
     cleaned_parts = [word for word in name_parts if word not in COMMON_LOCATIONS and not re.match(r'\d{2,}', word)]
     return " ".join(cleaned_parts)
 
-def extract_company_or_person_name(text):
+def extract_company_name(text):
     doc = nlp(text)
     company_names = []
     person_names = []
