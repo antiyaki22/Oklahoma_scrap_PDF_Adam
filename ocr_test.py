@@ -137,10 +137,11 @@ def get_merged_text(file_path: str) -> str:
 def extract_company_name(text):
     doc = nlp(text)
     company_names = []
+    
     for ent in doc.ents:
         if ent.label_ == "ORG":
             company_names.append(ent.text.strip())
-    
+
     if not company_names:
         company_name_regex = re.search(r'\b([A-Za-z\s]+(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings))\b', text)
         if company_name_regex:
@@ -149,7 +150,7 @@ def extract_company_name(text):
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-
+    
     return None
 
 if __name__ == "__main__":
