@@ -37,18 +37,15 @@ def clean_company_name(name):
     cleaned_parts = [word for word in name_parts if word not in COMMON_LOCATIONS and not re.match(r'\d{2,}', word)]
     return " ".join(cleaned_parts)
 
-def extract_company_name(text):
+def extract_company_or_person_name(text):
     doc = nlp(text)
     company_names = []
-    person_names = []
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
             cleaned_name = clean_company_name(ent.text)
             if len(cleaned_name.split()) > 1:
                 company_names.append(cleaned_name)
-        elif ent.label_ == "PERSON":
-            person_names.append(ent.text)
 
     if company_names:
         longest_name = max(company_names, key=len)
@@ -59,14 +56,6 @@ def extract_company_name(text):
     
     if company_match:
         return clean_company_name(company_match.group(1))
-
-    if person_names:
-        return max(person_names, key=len)
-
-    person_match = re.search(r'\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\b', text)
-    
-    if person_match:
-        return person_match.group(1)
 
     return None
 
