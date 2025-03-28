@@ -29,9 +29,9 @@ months = 3
 
 def extract_company_name(text):
     doc = nlp(text)
-
+    
     matcher = Matcher(nlp.vocab)
-
+    
     company_patterns = [
         [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
         [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
@@ -57,13 +57,13 @@ def extract_company_name(text):
         return company_names[0]
 
     for ent in doc.ents:
-        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
+        if ent.label_ == "ORG" and len(ent.text.split()) > 1:  
             company_names.append(ent.text.strip())
     
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-    
+
     regex_pattern = r"\b([A-Z][a-zA-Z0-9&'-.]+(?:\s[A-Z][a-zA-Z0-9&'-.]+)*\s(?:INC|LLC|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION))\b"
     regex_match = re.search(regex_pattern, text)
     
