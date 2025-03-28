@@ -32,15 +32,21 @@ COMMON_LOCATIONS = set([
     "County", "City", "State", "Town", "Village"
 ])
 
-def extract_company_name(text):
+def clean_company_name(name):
+    name_parts = name.split()
+    cleaned_parts = [word for word in name_parts if word not in COMMON_LOCATIONS and not re.match(r'\d{2,}', word)]
+    return " ".join(cleaned_parts)
+
+def extract_company_or_person_name(text):
     doc = nlp(text)
     company_names = []
     person_names = []
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
-            if len(ent.text.split()) > 1 and not any(word in COMMON_LOCATIONS for word in ent.text.split()):
-                company_names.append(ent.text)
+            cleaned_name = clean_company_name(ent.text)
+            if len(cleaned_name.split()) > 1:
+                company_names.append(cleaned_name)
         elif ent.label_ == "PERSON":
             person_names.append(ent.text)
 
@@ -52,7 +58,7 @@ def extract_company_name(text):
     company_match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
     
     if company_match:
-        return company_match.group(1)
+        return clean_company_name(company_match.group(1))
 
     if person_names:
         return max(person_names, key=len)
