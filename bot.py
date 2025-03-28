@@ -33,8 +33,11 @@ def extract_company_name(text):
     matcher = Matcher(nlp.vocab)
     
     company_patterns = [
-        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
-        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
+        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"IS_PUNCT": True}, {"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["GROUP", "ENTERPRISES", "HOLDINGS", "CORPORATION", "COMPANY", "GROUP", "LLC"]}}],  
+        [{"TEXT": {"in": ["DBA"]}}, {"IS_ALPHA": True, "OP": "+"}, {"IS_ALPHA": True, "OP": "+"}],  
     ]
     
     for pattern in company_patterns:
@@ -47,7 +50,7 @@ def extract_company_name(text):
         span = doc[start:end]
         company_names.append(span.text.strip())
     
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
     
     if company_names:
         company_names.sort(key=len, reverse=True)
