@@ -46,24 +46,31 @@ def extract_company_name(text):
     matches = matcher(doc)
     
     company_names = []
+    
     for match_id, start, end in matches:
         span = doc[start:end]
         company_names.append(span.text.strip())
     
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
     
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
     
     for ent in doc.ents:
-        if ent.label_ == "PERSON" and ent.text not in company_names:
+        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
             company_names.append(ent.text.strip())
     
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
     
+    regex_pattern = r"\b([A-Z][a-zA-Z0-9&'-.]+(?:\s[A-Z][a-zA-Z0-9&'-.]+)*\s(?:INC|LLC|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION))\b"
+    regex_match = re.search(regex_pattern, text)
+    
+    if regex_match:
+        return regex_match.group(1).strip()
+
     return None
 
 def extract_phone_number(text):
