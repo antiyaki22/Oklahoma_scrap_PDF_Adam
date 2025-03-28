@@ -152,13 +152,19 @@ def extract_company_name(text):
         matcher.add("COMPANY_NAME_PATTERN", [pattern])
     
     matches = matcher(doc)
+    print ("~~~~~~~~~~~~~~~~")
+    print (matches)
     
     company_names = []
     for match_id, start, end in matches:
         span = doc[start:end]
         company_names.append(span.text.strip())
+    print ("~~~~~~~~~~~~~~~~")
+    print (company_names)
     
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
+    print ("~~~~~~~~~~~~~~~~")
+    print (company_names)
     
     if company_names:
         company_names.sort(key=len, reverse=True)
@@ -168,6 +174,8 @@ def extract_company_name(text):
         if ent.label_ == "PERSON" and ent.text not in company_names:
             company_names.append(ent.text.strip())
     
+    print ("~~~~~~~~~~~~~~~~")
+    print (company_names)
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
