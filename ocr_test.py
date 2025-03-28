@@ -152,18 +152,14 @@ def extract_company_name(text):
         matcher.add("COMPANY_NAME_PATTERN", [pattern])
     
     matches = matcher(doc)
-    print ("~~~~~~~~~~~~~~~~")
-    print (matches)
     
     company_names = []
     for match_id, start, end in matches:
         span = doc[start:end]
         company_names.append(span.text.strip())
-    print ("~~~~~~~~~~~~~~~~")
-    print (company_names)
     
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
-    print ("~~~~~~~~~~~~~~~~")
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
+    print ("~~~~~~~~~~~~~~~~~~")
     print (company_names)
     
     if company_names:
@@ -171,14 +167,21 @@ def extract_company_name(text):
         return company_names[0]
     
     for ent in doc.ents:
-        if ent.label_ == "PERSON" and ent.text not in company_names:
+        if ent.label_ == "ORG" and len(ent.text.split()) > 1 and ent.text not in company_names:
             company_names.append(ent.text.strip())
     
-    print ("~~~~~~~~~~~~~~~~")
-    print (company_names)
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
+    print ("~~~~~~~~~~~~~~~~~~")
+    print (company_names)
+    
+    company_regex = re.search(r'\b[A-Z][A-Za-z&,\s]+(?:INC|LLC|CORP|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION)\b', text)
+    
+    if company_regex:
+        return company_regex.group().strip()
+    print ("~~~~~~~~~~~~~~~~~~")
+    print (company_regex)
     
     return None
 
