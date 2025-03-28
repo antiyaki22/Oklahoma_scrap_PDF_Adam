@@ -28,14 +28,14 @@ months = 3
 
 COMMON_LOCATIONS = set([
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-    "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", "Oklahoma",
-    "County", "City", "State", "Town", "Village"
+    "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose",
+    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd"
 ])
 
-def clean_company_name(name):
+def clean_name(name):
     name_parts = name.split()
     cleaned_parts = [word for word in name_parts if word not in COMMON_LOCATIONS and not re.match(r'\d{2,}', word)]
-    return " ".join(cleaned_parts)
+    return " ".join(cleaned_parts).strip()
 
 def extract_company_name(text):
     doc = nlp(text)
@@ -43,21 +43,21 @@ def extract_company_name(text):
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
-            cleaned_name = clean_company_name(ent.text)
+            cleaned_name = clean_name(ent.text)
             if len(cleaned_name.split()) > 1:
                 company_names.append(cleaned_name)
 
     if company_names:
-        longest_name = max(company_names, key=len)
-        longest_name = re.split(r'\sDBA\s', longest_name, flags=re.IGNORECASE)[0].strip()
-        return longest_name
+        return max(company_names, key=len)
 
-    company_match = re.search(r'\b([A-Z0-9][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+    company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
     
-    if company_match:
-        return clean_company_name(company_match.group(1))
+    if company_regex:
+        return clean_name(company_regex.group(1))
 
-    return None
+    person_regex = re.search(r'\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\b', text)
+    
+    return person_regex.group(1) if person_regex else None
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
