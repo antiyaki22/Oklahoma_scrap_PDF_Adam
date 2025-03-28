@@ -5,7 +5,6 @@ from sdk.extract_text_info_from_pdf import ExtractTextInfoFromPDF
 from sdk.extract_text_info_with_char_bounds_from_pdf import ExtractTextInfoWithCharBoundsFromPDF
 import json
 import re
-import fitz
 from PIL import Image
 from io import BytesIO
 import usaddress
