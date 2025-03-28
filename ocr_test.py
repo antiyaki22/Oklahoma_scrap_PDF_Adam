@@ -9,6 +9,7 @@ from PIL import Image
 from io import BytesIO
 import usaddress
 import spacy
+from spacy.matcher import Matcher
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -136,19 +137,26 @@ def get_merged_text(file_path: str) -> str:
 
 def extract_company_name(text):
     doc = nlp(text)
-    company_names = []
     
-    for ent in doc.ents:
-        if ent.label_ == "ORG":
-            company_names.append(ent.text.strip())
-    print (company_names)
-
-    if not company_names:
-        company_name_regex = re.search(r'\b([A-Za-z\s]+(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings))\b', text)
-        if company_name_regex:
-            company_names.append(company_name_regex.group(0).strip())
-    print (company_names)
-
+    matcher = Matcher(nlp.vocab)
+    
+    company_patterns = [
+        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
+    ]
+    
+    for pattern in company_patterns:
+        matcher.add("COMPANY_NAME_PATTERN", [pattern])
+    
+    matches = matcher(doc)
+    
+    company_names = []
+    for match_id, start, end in matches:
+        span = doc[start:end]
+        company_names.append(span.text.strip())
+    
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
+    
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
