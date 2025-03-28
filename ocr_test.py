@@ -141,21 +141,19 @@ def extract_company_name(text):
     matcher = Matcher(nlp.vocab)
     
     company_patterns = [
-        [{"LOWER": {"in": ["inc", "llc", "ltd", "corporation", "group", "enterprises", "holdings", "company"]}}]
+        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],
     ]
     
-    matcher.add("CompanyName", company_patterns)
+    for pattern in company_patterns:
+        matcher.add("COMPANY_NAME_PATTERN", [pattern])
     
     matches = matcher(doc)
     
     company_names = []
-    
     for match_id, start, end in matches:
         span = doc[start:end]
-        company_name = span.text.strip()
-        
-        if len(company_name.split()) > 1:
-            company_names.append(company_name)
+        company_names.append(span.text.strip())
     
     company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
     
