@@ -135,40 +135,38 @@ def get_merged_text(file_path: str) -> str:
     
     return merged_text.strip()
 
+COMPANY_KEYWORDS = {"Inc", "LLC", "Ltd", "Corporation", "Co", "Group", "Enterprises", "Holdings", "Corp", "Limited"}
+ADDRESS_KEYWORDS = {"Rd", "Road", "St", "Street", "Ave", "Avenue", "Dr", "Blvd", "Highway", "Hwy", "Lane", "Ln", "Court", "Ct", "Parkway", "Pkwy", "City", "State", "County"}
+
+def clean_name(name):
+    words = name.split()
+    filtered_words = []
+    for word in words:
+        if word in ADDRESS_KEYWORDS:  
+            break
+        filtered_words.append(word)
+    return " ".join(filtered_words).strip()
+
 def extract_company_name(text):
-    # Process the text with spaCy
     doc = nlp(text)
-    
-    # Initialize the matcher to find specific company name patterns
-    matcher = Matcher(nlp.vocab)
-    
-    # Define patterns for company name suffixes (e.g., Inc, LLC, Ltd, Corp)
-    patterns = [
-        [{"LOWER": {"in": ["inc", "llc", "ltd", "corp", "group", "enterprises", "holdings"]}}]
-    ]
-    
-    matcher.add("CompanyNames", patterns)
-    
-    # Extract ORG entities first (general organization names)
-    org_names = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+    company_names = []
 
-    # Match patterns for common company name suffixes
-    matches = matcher(doc)
+    for ent in doc.ents:
+        if ent.label_ == "ORG" and any(word in ent.text.split() for word in COMPANY_KEYWORDS):
+            cleaned_name = clean_name(ent.text)
+            if cleaned_name and len(cleaned_name.split()) > 1:
+                company_names.append(cleaned_name)
 
-    # Collect company names from both spaCy's NER and Matcher
-    company_names = set(org_names)  # Use a set to avoid duplicates
-    for match_id, start, end in matches:
-        span = doc[start:end]
-        company_names.add(span.text)
+    if company_names:
+        company_names.sort(key=len, reverse=True)
+        return company_names[0]
 
-    # Filter out invalid results, e.g., non-company entities like "Legal Property Description"
-    # Company names should usually have at least two words and common company suffixes
-    filtered_company_names = [
-        name for name in company_names if len(name.split()) > 1 and any(suffix in name.lower() for suffix in ["inc", "llc", "ltd", "corp", "group", "enterprises", "holdings"])
-    ]
+    company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:' + '|'.join(COMPANY_KEYWORDS) + r'))\b', text)
     
-    # Return the first valid company name found, or None if not found
-    return filtered_company_names[0] if filtered_company_names else None
+    if company_regex:
+        return clean_name(company_regex.group(1))
+
+    return None
 
 if __name__ == "__main__":
     # input_pdf_path = "downloads/ocr_test.pdf"
