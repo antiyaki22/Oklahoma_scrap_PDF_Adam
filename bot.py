@@ -26,36 +26,18 @@ TABLE_CELL_SELECTOR = "td"
 nlp = spacy.load("en_core_web_sm")
 months = 3
 
-COMPANY_KEYWORDS = {"Inc", "LLC", "Ltd", "Corporation", "Co", "Group", "Enterprises", "Holdings", "Corp", "Limited"}
-ADDRESS_KEYWORDS = {"Rd", "Road", "St", "Street", "Ave", "Avenue", "Dr", "Blvd", "Highway", "Hwy", "Lane", "Ln", "Court", "Ct", "Parkway", "Pkwy", "City", "State", "County"}
-
-def clean_name(name):
-    words = name.split()
-    filtered_words = []
-    for word in words:
-        if word in ADDRESS_KEYWORDS:  
-            break
-        filtered_words.append(word)
-    return " ".join(filtered_words).strip()
-
 def extract_company_name(text):
     doc = nlp(text)
+    
     company_names = []
 
     for ent in doc.ents:
-        if ent.label_ == "ORG" and any(word in ent.text.split() for word in COMPANY_KEYWORDS):
-            cleaned_name = clean_name(ent.text)
-            if cleaned_name and len(cleaned_name.split()) > 1:
-                company_names.append(cleaned_name)
+        if ent.label_ == "ORG":
+            company_names.append(ent.text.strip())
 
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-
-    company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:' + '|'.join(COMPANY_KEYWORDS) + r'))\b', text)
-    
-    if company_regex:
-        return clean_name(company_regex.group(1))
 
     return None
 
