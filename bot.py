@@ -29,13 +29,19 @@ months = 3
 COMMON_LOCATIONS = set([
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
     "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose",
-    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd", "Property", "Exhibit"
+    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd", "Property", "Exhibit", "Block", "Lot", "Legal", "Description"
 ])
 
+ADDRESS_KEYWORDS = {"Rd", "Road", "St", "Street", "Ave", "Avenue", "Dr", "Blvd", "Highway", "Hwy", "Lane", "Ln", "Court", "Ct", "Parkway", "Pkwy"}
+
 def clean_name(name):
-    name_parts = name.split()
-    cleaned_parts = [word for word in name_parts if word not in COMMON_LOCATIONS and not re.match(r'\d{2,}', word)]
-    return " ".join(cleaned_parts).strip()
+    words = name.split()
+    filtered_words = []
+    for word in words:
+        if word in COMMON_LOCATIONS or word in ADDRESS_KEYWORDS:
+            break
+        filtered_words.append(word)
+    return " ".join(filtered_words).strip()
 
 def extract_company_name(text):
     doc = nlp(text)
@@ -49,7 +55,7 @@ def extract_company_name(text):
 
     if company_names:
         company_names.sort(key=len, reverse=True)
-        return company_names[0] 
+        return company_names[0]
 
     company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
     
