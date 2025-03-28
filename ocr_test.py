@@ -138,10 +138,8 @@ def get_merged_text(file_path: str) -> str:
 def extract_company_name(text):
     doc = nlp(text)
     
-    # Initialize Matcher
     matcher = Matcher(nlp.vocab)
     
-    # Define company name patterns for the matcher
     company_patterns = [
         [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
         [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
@@ -150,42 +148,30 @@ def extract_company_name(text):
         [{"TEXT": {"in": ["DBA"]}}, {"IS_ALPHA": True, "OP": "+"}, {"IS_ALPHA": True, "OP": "+"}],  
     ]
     
-    # Add patterns to the matcher
     for pattern in company_patterns:
         matcher.add("COMPANY_NAME_PATTERN", [pattern])
-
-    # Apply the matcher to the document
-    matches = matcher(doc)
-    company_names = []
     
-    # Collect matches from the matcher
+    matches = matcher(doc)
+    
+    company_names = []
     for match_id, start, end in matches:
         span = doc[start:end]
         company_names.append(span.text.strip())
-
-    # Remove address-like patterns (if any)
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
+    
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
     
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-
-    # Fallback to spaCy's entity recognition (ORG)
+    
     for ent in doc.ents:
-        if ent.label_ == "ORG" and len(ent.text.split()) > 1:  # More than one word
+        if ent.label_ == "PERSON" and ent.text not in company_names:
             company_names.append(ent.text.strip())
     
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-
-    # Fallback to regex if no matches are found from spaCy or Matcher
-    regex_pattern = r"\b([A-Z][a-zA-Z0-9&'-.]+(?:\s[A-Z][a-zA-Z0-9&'-.]+)*\s(?:INC|LLC|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION))\b"
-    regex_match = re.search(regex_pattern, text)
     
-    if regex_match:
-        return regex_match.group(1).strip()
-
     return None
 
 if __name__ == "__main__":
