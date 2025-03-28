@@ -29,7 +29,7 @@ months = 3
 COMMON_LOCATIONS = set([
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
     "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose",
-    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd"
+    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd", "Property", "Exhibit"
 ])
 
 def clean_name(name):
@@ -42,13 +42,14 @@ def extract_company_name(text):
     company_names = []
 
     for ent in doc.ents:
-        if ent.label_ == "ORG":
+        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
             cleaned_name = clean_name(ent.text)
-            if len(cleaned_name.split()) > 1:
+            if cleaned_name and len(cleaned_name.split()) > 1:
                 company_names.append(cleaned_name)
 
     if company_names:
-        return max(company_names, key=len)
+        company_names.sort(key=len, reverse=True)
+        return company_names[0] 
 
     company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
     
