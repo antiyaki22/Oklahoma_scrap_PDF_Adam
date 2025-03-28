@@ -141,11 +141,13 @@ def extract_company_name(text):
     for ent in doc.ents:
         if ent.label_ == "ORG":
             company_names.append(ent.text.strip())
+    print (company_names)
 
     if not company_names:
         company_name_regex = re.search(r'\b([A-Za-z\s]+(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings))\b', text)
         if company_name_regex:
             company_names.append(company_name_regex.group(0).strip())
+    print (company_names)
 
     if company_names:
         company_names.sort(key=len, reverse=True)
