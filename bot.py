@@ -26,29 +26,24 @@ TABLE_CELL_SELECTOR = "td"
 nlp = spacy.load("en_core_web_sm")
 months = 3
 
-COMMON_LOCATIONS = set([
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-    "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose",
-    "County", "City", "State", "Town", "Village", "Road", "Avenue", "Street", "Dr", "Blvd", "Property", "Exhibit", "Block", "Lot", "Legal", "Description"
-])
-
-ADDRESS_KEYWORDS = {"Rd", "Road", "St", "Street", "Ave", "Avenue", "Dr", "Blvd", "Highway", "Hwy", "Lane", "Ln", "Court", "Ct", "Parkway", "Pkwy"}
+COMPANY_KEYWORDS = {"Inc", "LLC", "Ltd", "Corporation", "Co", "Group", "Enterprises", "Holdings", "Corp", "Limited"}
+ADDRESS_KEYWORDS = {"Rd", "Road", "St", "Street", "Ave", "Avenue", "Dr", "Blvd", "Highway", "Hwy", "Lane", "Ln", "Court", "Ct", "Parkway", "Pkwy", "City", "State", "County"}
 
 def clean_name(name):
     words = name.split()
     filtered_words = []
     for word in words:
-        if word in COMMON_LOCATIONS or word in ADDRESS_KEYWORDS:
+        if word in ADDRESS_KEYWORDS:  
             break
         filtered_words.append(word)
     return " ".join(filtered_words).strip()
 
-def extract_company_name(text):
+def extract_company_or_person_name(text):
     doc = nlp(text)
     company_names = []
 
     for ent in doc.ents:
-        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
+        if ent.label_ == "ORG" and any(word in ent.text.split() for word in COMPANY_KEYWORDS):
             cleaned_name = clean_name(ent.text)
             if cleaned_name and len(cleaned_name.split()) > 1:
                 company_names.append(cleaned_name)
@@ -57,14 +52,12 @@ def extract_company_name(text):
         company_names.sort(key=len, reverse=True)
         return company_names[0]
 
-    company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:Inc|LLC|Ltd|Corporation|Co|Group|Enterprises|Holdings|Corp|Limited))\b', text)
+    company_regex = re.search(r'\b([A-Z][A-Za-z0-9&,\-\.]+(?:\s[A-Z0-9][A-Za-z0-9&,\-\.]+)*\s(?:' + '|'.join(COMPANY_KEYWORDS) + r'))\b', text)
     
     if company_regex:
         return clean_name(company_regex.group(1))
 
-    person_regex = re.search(r'\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)\b', text)
-    
-    return person_regex.group(1) if person_regex else None
+    return None
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
