@@ -26,14 +26,21 @@ TABLE_CELL_SELECTOR = "td"
 nlp = spacy.load("en_core_web_sm")
 months = 3
 
+COMMON_LOCATIONS = set([
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", "Oklahoma",
+    "County", "City", "State", "Town", "Village"
+])
+
 def extract_company_name(text):
     doc = nlp(text)
     company_names = []
     person_names = []
 
     for ent in doc.ents:
-        if ent.label_ == "ORG" and len(ent.text.split()) > 1:
-            company_names.append(ent.text)
+        if ent.label_ == "ORG":
+            if len(ent.text.split()) > 1 and not any(word in COMMON_LOCATIONS for word in ent.text.split()):
+                company_names.append(ent.text)
         elif ent.label_ == "PERSON":
             person_names.append(ent.text)
 
