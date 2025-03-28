@@ -33,10 +33,10 @@ def extract_company_name(text):
     matcher = Matcher(nlp.vocab)
     
     company_patterns = [
-        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"IS_PUNCT": True}, {"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["GROUP", "ENTERPRISES", "HOLDINGS", "CORPORATION", "COMPANY", "GROUP", "LLC"]}}],  
+        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"IS_PUNCT": True}, {"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "ASSOCIATION"]}}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["GROUP", "ENTERPRISES", "HOLDINGS", "CORPORATION", "COMPANY", "LLC", "ASSOCIATION"]}}],  
         [{"TEXT": {"in": ["DBA"]}}, {"IS_ALPHA": True, "OP": "+"}, {"IS_ALPHA": True, "OP": "+"}],  
     ]
     
@@ -51,6 +51,14 @@ def extract_company_name(text):
         company_names.append(span.text.strip())
     
     company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
+    
+    if company_names:
+        company_names.sort(key=len, reverse=True)
+        return company_names[0]
+    
+    for ent in doc.ents:
+        if ent.label_ == "PERSON" and ent.text not in company_names:
+            company_names.append(ent.text.strip())
     
     if company_names:
         company_names.sort(key=len, reverse=True)
