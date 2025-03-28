@@ -51,25 +51,18 @@ def extract_company_name(text):
         company_names.append(span.text.strip())
     
     company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
-
-    if company_names:
-        company_names.sort(key=len, reverse=True)
-        if len(company_names[0].split()) > 1:  
-            return company_names[0]  
     
-    company_names = []
-    for ent in doc.ents:
-        if ent.label_ == "ORG" and len(ent.text.split()) > 1 and ent.text not in company_names:
-            company_names.append(ent.text.strip())
-
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
     
-    company_regex = re.search(r'\b[A-Z][A-Za-z&,\s]+(?:INC|LLC|CORP|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION)\b', text)
+    for ent in doc.ents:
+        if ent.label_ == "PERSON" and ent.text not in company_names:
+            company_names.append(ent.text.strip())
     
-    if company_regex:
-        return company_regex.group().strip()
+    if company_names:
+        company_names.sort(key=len, reverse=True)
+        return company_names[0]
     
     return None
 
