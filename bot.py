@@ -320,13 +320,13 @@ def get_owner(text):
 
     return None
 
-def get_owner_address(text):
-    owner_match = re.search(r'\b(?:Owner|Owners|owned by|owned)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
-    if owner_match:
-        owner_text = owner_match.group(1).strip()
+def get_property_address(text):
+    property_match = re.search(r'\b(?:property:|against|upon)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
+    if property_match:
+        property_text = property_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(f"owner: {owner_text}")
-        address, city, state, zip = extract_address(owner_text)
+        print(f"property: {property_text}")
+        address, city, state, zip = extract_address(property_text)
         if address or city or state or zip:
             return address, city, state, zip
 
@@ -461,7 +461,7 @@ async def process_pdf(docid: str) -> tuple:
     claimant = get_claimant(full_text)
     contractor = get_contractor(full_text)
     owner = get_owner(full_text)
-    address, city, state, zipcode = get_owner_address(full_text)
+    address, city, state, zipcode = get_property_address(full_text)
     dollar_amount = f"${extract_dollar_amount(renamed_json_path)}"
     phone_number = get_claimant_phone(full_text)
 
