@@ -64,7 +64,8 @@ def extract_company_name(text):
         company_names.sort(key=len, reverse=True)
         return company_names[0]
 
-    match = re.search(r"([A-Za-z\s]+(?:,\s[A-Za-z\s]+)*\s(?:LLC|INC|CORP|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION))", text)
+    match = re.search(r"([A-Za-z\s]+(?:,\s[A-Za-z\s]+)*\s*,?\s*(?:LLC|INC|CORP|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION)(?:\s*\([^)]+\))?)", text)
+    
     if match:
         return match.group(0).strip()
 
@@ -77,7 +78,6 @@ def extract_company_name(text):
         return company_names[0]
 
     return None
-
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
