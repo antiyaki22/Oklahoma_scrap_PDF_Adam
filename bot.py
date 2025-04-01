@@ -47,7 +47,7 @@ def extract_company_name(text):
 
     for match_id, start, end in matches:
         span = doc[start:end]
-
+        
         if span.text.strip() in company_suffixes and start > 0:
             span = doc[start - 1:end] 
 
@@ -64,6 +64,10 @@ def extract_company_name(text):
         company_names.sort(key=len, reverse=True)
         return company_names[0]
 
+    match = re.search(r"([A-Za-z\s]+(?:,\s[A-Za-z\s]+)*\s(?:LLC|INC|CORP|CORPORATION|GROUP|ENTERPRISES|HOLDINGS|DBA|CO|LIMITED|PARTNERSHIP|ASSOCIATION))", text)
+    if match:
+        return match.group(0).strip()
+
     for ent in doc.ents:
         if ent.label_ == "PERSON" and ent.text not in company_names:
             company_names.append(ent.text.strip())
@@ -73,6 +77,7 @@ def extract_company_name(text):
         return company_names[0]
 
     return None
+
 
 def extract_phone_number(text):
     numbers = [match.number for match in phonenumbers.PhoneNumberMatcher(text, "US")]
