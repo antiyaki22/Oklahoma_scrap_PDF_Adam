@@ -114,6 +114,21 @@ def clear_xlsx_file():
         wb = Workbook()  
         wb.save(XLSX_FILE)
 
+import json
+import re
+
+def fix_misplaced_decimal(amount):
+    """
+    Fix misplaced decimal formatting like "22.692.92" -> "22692.92"
+    """
+    amount = amount.replace(" ", "").replace(",", "")  
+    parts = amount.split(".")
+    
+    if len(parts) > 2:  
+        amount = parts[0] + parts[1] + "." + parts[-1]  
+    
+    return amount
+
 def extract_dollar_amount(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -139,10 +154,10 @@ def extract_dollar_amount(json_file_path):
         for pattern in patterns:
             match = re.search(pattern, text)
             if match:
-                return match.group(1)
+                return fix_misplaced_decimal(match.group(1))
 
         dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{1,2})", text)
-        all_amounts.extend(dollar_matches)
+        all_amounts.extend(fix_misplaced_decimal(m) for m in dollar_matches)
 
         if "Principal amount of claim:" in text:
             for j in range(1, 3):
@@ -150,7 +165,7 @@ def extract_dollar_amount(json_file_path):
                     next_text = elements[i + j].get("Text", "")
                     next_dollar_matches = re.findall(r"\$\s?([\d,]+\.\d{1,2})", next_text)
                     if next_dollar_matches:
-                        return next_dollar_matches[0] 
+                        return fix_misplaced_decimal(next_dollar_matches[0]) 
 
     if all_amounts:
         return max(all_amounts, key=lambda x: float(x.replace(",", "")))
