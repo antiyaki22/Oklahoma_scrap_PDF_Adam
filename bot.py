@@ -1,5 +1,4 @@
 import asyncio
-import csv
 import os
 from datetime import datetime
 import re
@@ -29,41 +28,46 @@ months = 3
 
 def extract_company_name(text):
     doc = nlp(text)
-    
     matcher = Matcher(nlp.vocab)
     
+    company_suffixes = ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", 
+                        "LIMITED", "PARTNERSHIP", "ASSOCIATION", "COMPANY"]
+    
     company_patterns = [
-        [{"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORP", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "CO", "LIMITED", "PARTNERSHIP", "ASSOCIATION"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"IS_PUNCT": True}, {"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["INC", "LLC", "CORPORATION", "GROUP", "ENTERPRISES", "HOLDINGS", "DBA", "ASSOCIATION"]}}],  
-        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": ["GROUP", "ENTERPRISES", "HOLDINGS", "CORPORATION", "COMPANY", "LLC", "ASSOCIATION"]}}],  
-        [{"TEXT": {"in": ["DBA"]}}, {"IS_ALPHA": True, "OP": "+"}, {"IS_ALPHA": True, "OP": "+"}],  
+        [{"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": company_suffixes}}],
+        [{"IS_ALPHA": True, "OP": "+"}, {"IS_PUNCT": True}, {"IS_ALPHA": True, "OP": "+"}, {"TEXT": {"in": company_suffixes}}],
+        [{"TEXT": {"in": ["DBA"]}}, {"IS_ALPHA": True, "OP": "+"}, {"IS_ALPHA": True, "OP": "+"}],
     ]
     
     for pattern in company_patterns:
         matcher.add("COMPANY_NAME_PATTERN", [pattern])
-    
+
     matches = matcher(doc)
-    
     company_names = []
+
     for match_id, start, end in matches:
         span = doc[start:end]
         company_names.append(span.text.strip())
-    
-    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]  
-    
+
+    company_names = [name for name in company_names if not re.search(r'\d{1,5}\s\w+(\s\w+)*', name)]
+
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-    
+
+    matches = re.findall(r"owned by\s+([\w\s,&.-]+?)\s+\(?\"?", text, re.IGNORECASE)
+    for match in matches:
+        if any(suffix in match.upper() for suffix in company_suffixes):
+            return match.strip()
+
     for ent in doc.ents:
         if ent.label_ == "PERSON" and ent.text not in company_names:
             company_names.append(ent.text.strip())
-    
+
     if company_names:
         company_names.sort(key=len, reverse=True)
         return company_names[0]
-    
+
     return None
 
 def extract_phone_number(text):
@@ -113,9 +117,6 @@ def clear_xlsx_file():
     if os.path.isfile(XLSX_FILE):
         wb = Workbook()  
         wb.save(XLSX_FILE)
-
-import json
-import re
 
 def fix_misplaced_decimal(amount):
     """
