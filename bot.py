@@ -321,7 +321,16 @@ def get_owner(text):
     return None
 
 def get_property_address(text):
-    property_match = re.search(r'\b(?:property:|against|upon)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
+    property_match = re.search(r'\b(?:property:|contract:|notice to:|prepared by:|following:)\b:?\s*(\S+(?:\s+\S+){0,29})', text, re.IGNORECASE | re.DOTALL)
+    if property_match:
+        property_text = property_match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print(f"property: {property_text}")
+        address, city, state, zip = extract_address(property_text)
+        if address or city or state or zip:
+            return address, city, state, zip
+
+    property_match = re.search(r'\b(?:against|upon)\b:?\s*(\S+(?:\s+\S+){0,49})', text, re.IGNORECASE | re.DOTALL)
     if property_match:
         property_text = property_match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
